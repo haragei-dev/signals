@@ -53,12 +53,12 @@
     ]
   },
   "scripts": {
-    "build": "pkgroll --target=node22 --minify --sourcemap",
+    "build": "rm -rf ./package && clean-publish && tsdown && node ../../scripts/mangle-internal-props.mjs ./package/dist/*.mjs ./package/dist/*.cjs && node ../../scripts/report-bundle-sizes.mjs ./package/dist/*.mjs ./package/dist/*.cjs",
     "lint": "eslint ./src --config ../../eslint.config.js",
     "test": "vitest run --config ./vitest.config.ts",
     "test:coverage": "vitest run --coverage --config ./vitest.config.ts",
     "typecheck": "tsc --noEmit -p ./tsconfig.json",
-    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && rm -rf ./package && clean-publish && env npm_config_cache=/tmp/npm-cache attw --pack ./package",
+    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "postpublish": "rm -rf ./package"
   }
 }

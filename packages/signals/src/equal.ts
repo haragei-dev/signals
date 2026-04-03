@@ -63,7 +63,7 @@ export function equal(a: unknown, b: unknown, options?: EqualityOptions): boolea
  */
 export function equalFunc(options?: EqualityOptions): (a: unknown, b: unknown) => boolean {
     const params = deepEqualParams(options);
-    return (a: unknown, b: unknown) => deepEqual(a, b, { ...params, cache: new Map() });
+    return (a: unknown, b: unknown) => deepEqual(a, b, { ...params, _cache: new Map() });
 }
 
 /**
@@ -87,14 +87,14 @@ function deepEqualParams({
     maxDepth = Infinity,
 }: EqualityOptions = {}): DeepEqualParams {
     return {
-        cache: new Map(),
-        compare:
+        _cache: new Map(),
+        _compare:
             compare === 'strict'
                 ? Object.is
                 : compare === 'loose'
                   ? (lhs, rhs) => lhs == rhs || (Number.isNaN(lhs) && Number.isNaN(rhs))
                   : compare,
-        maxDepth,
+        _maxDepth: maxDepth,
     };
 }
 
@@ -105,19 +105,19 @@ interface DeepEqualParams {
     /**
      * Comparison cache used for handling circular references.
      */
-    readonly cache: Map<object, Set<object>>;
+    readonly _cache: Map<object, Set<object>>;
 
     /**
      * Comparator function.
      */
-    readonly compare: (a: unknown, b: unknown) => boolean;
+    readonly _compare: (a: unknown, b: unknown) => boolean;
 
     /**
      * Maximum depth the `deepEqual()` will traverse to.
      * If two objects are equal up to the `maxDepth` level they will be
      * threated as equal even if they differ in the lower levels.
      */
-    readonly maxDepth: number;
+    readonly _maxDepth: number;
 }
 
 /**
@@ -152,8 +152,8 @@ const hasElement = typeof globalThis.Element === 'function';
  * @returns `true` if the values are structurally equal.
  */
 function deepEqual(a: unknown, b: unknown, params: DeepEqualParams, depth = 0): boolean {
-    if (++depth > params.maxDepth || !isObject(a) || !isObject(b)) {
-        return params.compare(a, b);
+    if (++depth > params._maxDepth || !isObject(a) || !isObject(b)) {
+        return params._compare(a, b);
     }
 
     if (a === b) {
@@ -164,10 +164,10 @@ function deepEqual(a: unknown, b: unknown, params: DeepEqualParams, depth = 0): 
         return false;
     }
 
-    let rhsValues = params.cache.get(a);
+    let rhsValues = params._cache.get(a);
     if (!rhsValues) {
         rhsValues = new Set();
-        params.cache.set(a, rhsValues);
+        params._cache.set(a, rhsValues);
     } else if (rhsValues.has(b)) {
         return true;
     }

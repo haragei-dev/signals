@@ -5,94 +5,114 @@ import type {
     SignalReader,
 } from './types';
 
+export const RUNNING_SYNC = 0;
+export const PENDING_ASYNC = 1;
+export const SETTLED = 2;
+export const CANCELED = 3;
+
+export type EffectRunState =
+    | typeof RUNNING_SYNC
+    | typeof PENDING_ASYNC
+    | typeof SETTLED
+    | typeof CANCELED;
+
+export const FULFILLED = 0;
+export const REJECTED = 1;
+
+export type AsyncRunStatus = typeof FULFILLED | typeof REJECTED;
+
+export const ABORT_RERUN = 0;
+export const ABORT_CONTROL = 1;
+export const ABORT_STOP = 2;
+
+export type AsyncRunnerAbortKind = typeof ABORT_RERUN | typeof ABORT_CONTROL | typeof ABORT_STOP;
+
 export interface EffectInstance {
-    readonly isMemo: boolean;
-    readonly update: () => void;
-    readonly cancel: () => void;
+    readonly _isMemo: boolean;
+    readonly _update: () => void;
+    readonly _cancel: () => void;
 }
 
 export interface TrackingRun {
-    readonly effect: EffectInstance;
-    tracking: boolean;
-    onDependencyCleanup(unlink: () => void): void;
+    readonly _effect: EffectInstance;
+    _isTracking: boolean;
+    _onDependencyCleanup(unlink: () => void): void;
 }
 
 export interface EffectRun extends TrackingRun {
-    readonly generation: number;
-    readonly cleanups: Set<() => void>;
-    readonly dependencyUnlinks: Set<() => void>;
-    readonly controller: AbortController;
-    readonly signal: AbortSignal;
-    state: 'running-sync' | 'pending-async' | 'settled' | 'canceled';
-    cleanupComplete: boolean;
-    dependenciesComplete: boolean;
-    active: boolean;
+    readonly _generation: number;
+    readonly _cleanups: Set<() => void>;
+    readonly _dependencyUnlinks: Set<() => void>;
+    readonly _controller: AbortController;
+    readonly _signal: AbortSignal;
+    _state: EffectRunState;
+    _isCleanupComplete: boolean;
+    _areDependenciesComplete: boolean;
+    _isActive: boolean;
 }
 
 export interface InternalEffectOptions {
-    readonly isMemo?: boolean;
-    readonly signal?: AbortSignal;
-    readonly queue?: InvalidationQueue;
-    readonly concurrency?: AsyncEffectConcurrency;
-    readonly onError?: AsyncEffectErrorOptions;
+    readonly _isMemo?: boolean;
+    readonly _signal?: AbortSignal;
+    readonly _queue?: InvalidationQueue;
+    readonly _concurrency?: AsyncEffectConcurrency;
+    readonly _onError?: AsyncEffectErrorOptions;
 }
 
 export interface StoreState {
-    batchLevel: number;
-    isUpdating: boolean;
-    isTracking: boolean;
-    readonly pendingEffects: Set<EffectInstance>;
-    readonly runs: TrackingRun[];
-    readonly activeEffects: Set<EffectInstance>;
+    _batchLevel: number;
+    _isUpdating: boolean;
+    _isTracking: boolean;
+    readonly _runs: TrackingRun[];
+    readonly _pendingEffects: Set<EffectInstance>;
+    readonly _activeEffects: Set<EffectInstance>;
 }
 
 export interface AsyncRunnerContext {
-    readonly signal: AbortSignal;
-    onCleanup(cleanup: () => void): void;
-    track<T>(read: SignalReader<T>): T;
+    readonly _signal: AbortSignal;
+    _onCleanup(cleanup: () => void): void;
+    _track<T>(read: SignalReader<T>): T;
 }
 
 export type AsyncRunCompletion<Result> =
-    | { status: 'fulfilled'; value: Result }
-    | { status: 'rejected'; error: unknown };
+    | { _status: typeof FULFILLED; _value: Result }
+    | { _status: typeof REJECTED; _error: unknown };
 
 export interface AsyncRunnerCommitInfo {
-    readonly latestStartedGeneration: number;
+    readonly _latestStartedGeneration: number;
 }
 
 export interface AsyncRunnerControl<Trigger = void> {
-    invalidate(trigger?: Trigger): void;
-    invalidateFromDependency(trigger?: Trigger): void;
-    cancelActive(): void;
-    stop(): void;
+    _invalidate(trigger?: Trigger): void;
+    _invalidateFromDependency(trigger?: Trigger): void;
+    _cancelActive(): void;
+    _stop(): void;
 }
 
 export interface AsyncRunnerAbortHelpers {
-    cleanupRun(run: EffectRun): void;
-    preserveRunDependencies(run: EffectRun): void;
+    _cleanupRun(run: EffectRun): void;
+    _preserveRunDependencies(run: EffectRun): void;
 }
 
-export type AsyncRunnerAbortKind = 'rerun' | 'control' | 'stop';
-
 export interface AsyncRunnerHooks<Prepared, Result, Trigger = void> {
-    prepare(trigger: Trigger | undefined): Prepared;
-    execute(context: AsyncRunnerContext, prepared: Prepared): Result | PromiseLike<Result>;
-    handleSyncResult?(run: EffectRun, result: Result, prepared: Prepared): boolean;
-    commit(run: EffectRun, completion: AsyncRunCompletion<Result>, prepared: Prepared): void;
-    shouldCommit?(
+    _prepare(trigger: Trigger | undefined): Prepared;
+    _execute(context: AsyncRunnerContext, prepared: Prepared): Result | PromiseLike<Result>;
+    _handleSyncResult?(run: EffectRun, result: Result, prepared: Prepared): boolean;
+    _commit(run: EffectRun, completion: AsyncRunCompletion<Result>, prepared: Prepared): void;
+    _shouldCommit?(
         run: EffectRun,
         completion: AsyncRunCompletion<Result>,
         prepared: Prepared,
         info: AsyncRunnerCommitInfo,
     ): boolean;
-    mergeTrigger?(current: Trigger | undefined, next: Trigger | undefined): Trigger | undefined;
-    defaultErrorHandler?(error: unknown): void;
-    onErrorCancel?(control: AsyncRunnerControl<Trigger>): void;
-    abortRun?(
+    _mergeTrigger?(current: Trigger | undefined, next: Trigger | undefined): Trigger | undefined;
+    _defaultErrorHandler?(error: unknown): void;
+    _onErrorCancel?(control: AsyncRunnerControl<Trigger>): void;
+    _abortRun?(
         run: EffectRun,
         prepared: Prepared,
         kind: AsyncRunnerAbortKind,
         helpers: AsyncRunnerAbortHelpers,
     ): boolean;
-    onStop?(): void;
+    _onStop?(): void;
 }

@@ -1,4 +1,5 @@
 import { createAsyncRunner } from './async-runner';
+import { ABORT_CONTROL, CANCELED, FULFILLED, REJECTED } from './internal';
 import type { EffectInstance, StoreState } from './internal';
 import { createSignal } from './signal';
 import type {
@@ -11,12 +12,12 @@ import type {
 } from './types';
 
 type ResourceCompletion<T> =
-    | { status: 'fulfilled'; value: T }
-    | { status: 'rejected'; error: unknown };
+    | { _status: typeof FULFILLED; _value: T }
+    | { _status: typeof REJECTED; _error: unknown };
 
 interface ResourcePrepared<T, E = unknown> {
-    readonly previous: ResourceState<T, E>;
-    readonly cause: RunCause;
+    readonly _previous: ResourceState<T, E>;
+    readonly _cause: RunCause;
 }
 
 function createIdleState<T, E = unknown>(): ResourceState<T, E> {
@@ -72,12 +73,12 @@ export function createResource<T, E = unknown>(
     };
 
     const fx: EffectInstance = {
-        isMemo: false,
-        update(): void {
-            control.invalidateFromDependency();
+        _isMemo: false,
+        _update(): void {
+            control._invalidateFromDependency();
         },
-        cancel(): void {
-            control.stop();
+        _cancel(): void {
+            control._stop();
         },
     };
 
@@ -85,27 +86,27 @@ export function createResource<T, E = unknown>(
         state,
         fx,
         {
-            signal,
-            queue,
-            concurrency,
-            onError,
+            _signal: signal,
+            _queue: queue,
+            _concurrency: concurrency,
+            _onError: onError,
         },
         {
-            prepare(trigger): ResourcePrepared<T, E> {
+            _prepare(trigger): ResourcePrepared<T, E> {
                 const prepared = {
-                    previous: currentState,
-                    cause: trigger ?? 'dependency',
+                    _previous: currentState,
+                    _cause: trigger ?? 'dependency',
                 };
 
-                setState(getLoadingState(prepared.previous));
+                setState(getLoadingState(prepared._previous));
                 return prepared;
             },
-            execute(context, prepared): Promise<T> {
+            _execute(context, prepared): Promise<T> {
                 try {
                     return Promise.resolve(
                         load({
                             cancel() {
-                                fx.cancel();
+                                fx._cancel();
                             },
                             refresh() {
                                 controls.refresh();
@@ -117,27 +118,27 @@ export function createResource<T, E = unknown>(
                                 controls.reset();
                             },
                             track<U>(reader: SignalReader<U>): U {
-                                return context.track(reader);
+                                return context._track(reader);
                             },
-                            signal: context.signal,
+                            signal: context._signal,
                             onCleanup(cleanup) {
-                                context.onCleanup(cleanup);
+                                context._onCleanup(cleanup);
                             },
-                            previous: prepared.previous,
-                            cause: prepared.cause,
+                            previous: prepared._previous,
+                            cause: prepared._cause,
                         }),
                     );
                 } catch (error) {
                     return Promise.reject(error);
                 }
             },
-            commit(_run, completion, prepared): void {
+            _commit(_run, completion, prepared): void {
                 const result = completion as ResourceCompletion<T>;
 
-                if (result.status === 'fulfilled') {
+                if (result._status === FULFILLED) {
                     setState({
                         status: 'ready',
-                        value: result.value,
+                        value: result._value,
                         error: undefined,
                         isStale: false,
                     });
@@ -146,33 +147,33 @@ export function createResource<T, E = unknown>(
 
                 setState({
                     status: 'error',
-                    value: prepared.previous.value,
-                    error: result.error as E,
-                    isStale: prepared.previous.value !== undefined,
+                    value: prepared._previous.value,
+                    error: result._error as E,
+                    isStale: prepared._previous.value !== undefined,
                 });
             },
-            shouldCommit(run, _completion, _prepared, info): boolean {
-                return writes === 'settled' || run.generation === info.latestStartedGeneration;
+            _shouldCommit(run, _completion, _prepared, info): boolean {
+                return writes === 'settled' || run._generation === info._latestStartedGeneration;
             },
-            mergeTrigger(current, next): RunCause | undefined {
+            _mergeTrigger(current, next): RunCause | undefined {
                 return next ?? current;
             },
-            onErrorCancel(shared): void {
-                shared.cancelActive();
+            _onErrorCancel(shared): void {
+                shared._cancelActive();
             },
-            onStop(): void {
+            _onStop(): void {
                 stopped = true;
             },
-            abortRun(run, _prepared, kind, helpers): boolean {
-                if (kind !== 'control') {
+            _abortRun(run, _prepared, kind, helpers): boolean {
+                if (kind !== ABORT_CONTROL) {
                     return false;
                 }
 
-                run.tracking = false;
-                run.controller.abort();
-                run.state = 'canceled';
-                helpers.preserveRunDependencies(run);
-                helpers.cleanupRun(run);
+                run._isTracking = false;
+                run._controller.abort();
+                run._state = CANCELED;
+                helpers._preserveRunDependencies(run);
+                helpers._cleanupRun(run);
                 return true;
             },
         },
@@ -183,24 +184,24 @@ export function createResource<T, E = unknown>(
             if (stopped) {
                 return;
             }
-            control.invalidate('refresh');
+            control._invalidate('refresh');
         },
         abort(): void {
             if (stopped) {
                 return;
             }
-            control.cancelActive();
+            control._cancelActive();
         },
         reset(): void {
             if (stopped) {
                 return;
             }
-            control.cancelActive();
+            control._cancelActive();
             setState(createIdleState<T, E>());
         },
     };
 
-    control.invalidate('init');
+    control._invalidate('init');
 
     return [read, controls] as const;
 }

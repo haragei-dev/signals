@@ -1,30 +1,30 @@
 import type { StoreState } from './internal';
 
 export function flushPendingEffects(state: StoreState): void {
-    if (state.isUpdating) {
+    if (state._isUpdating) {
         return;
     }
-    state.isUpdating = true;
+    state._isUpdating = true;
 
     try {
-        for (const fx of state.pendingEffects) {
-            if (fx.isMemo) {
-                fx.update();
-                state.pendingEffects.delete(fx);
+        for (const fx of state._pendingEffects) {
+            if (fx._isMemo) {
+                fx._update();
+                state._pendingEffects.delete(fx);
             }
         }
     } finally {
-        state.isUpdating = false;
+        state._isUpdating = false;
     }
 
-    if (state.batchLevel > 0) {
+    if (state._batchLevel > 0) {
         return;
     }
 
-    const effects = Array.from(state.pendingEffects);
-    state.pendingEffects.clear();
+    const effects = Array.from(state._pendingEffects);
+    state._pendingEffects.clear();
 
     for (const fx of effects) {
-        fx.update();
+        fx._update();
     }
 }

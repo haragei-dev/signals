@@ -34,8 +34,7 @@ for (const entry of entries) {
 
     const stagedPublishDir = path.join(packageDir, 'package');
 
-    await rm(stagedPublishDir, { force: true, recursive: true });
-    await run('pnpm', ['exec', 'clean-publish'], {
+    await run('pnpm', ['build'], {
         cwd: packageDir,
         encoding: 'utf8',
     });

@@ -11,7 +11,13 @@ import type {
 export function createEffect(
     state: StoreState,
     execute: EffectFunction | AsyncEffectFunction,
-    { isMemo = false, signal, queue, concurrency = 'cancel', onError }: InternalEffectOptions = {},
+    {
+        _isMemo: isMemo = false,
+        _signal: signal,
+        _queue: queue,
+        _concurrency: concurrency = 'cancel',
+        _onError: onError,
+    }: InternalEffectOptions = {},
 ): () => void {
     if (signal?.aborted) {
         return () => {};
@@ -25,60 +31,60 @@ export function createEffect(
         }
 
         canceled = true;
-        control.stop();
+        control._stop();
     };
 
     const update = (): void => {
         if (canceled) {
             return;
         }
-        control.invalidateFromDependency();
+        control._invalidateFromDependency();
     };
 
     const fx: EffectInstance = {
-        isMemo,
-        update,
-        cancel,
+        _isMemo: isMemo,
+        _update: update,
+        _cancel: cancel,
     };
 
     const control = createAsyncRunner<void, void | (() => void)>(
         state,
         fx,
         {
-            signal,
-            queue,
-            concurrency,
-            onError,
+            _signal: signal,
+            _queue: queue,
+            _concurrency: concurrency,
+            _onError: onError,
         },
         {
-            prepare(): void {},
-            execute(context): void | (() => void) | Promise<void> {
+            _prepare(): void {},
+            _execute(context): void | (() => void) | Promise<void> {
                 return execute({
                     cancel,
                     track<T>(read: SignalReader<T>): T {
-                        return context.track(read);
+                        return context._track(read);
                     },
-                    signal: context.signal,
+                    signal: context._signal,
                     onCleanup(cleanup) {
-                        context.onCleanup(cleanup);
+                        context._onCleanup(cleanup);
                     },
                 } as EffectContext & AsyncEffectContext);
             },
-            handleSyncResult(run, result): boolean {
+            _handleSyncResult(run, result): boolean {
                 if (typeof result === 'function') {
-                    run.cleanups.add(result);
+                    run._cleanups.add(result);
                 }
 
                 return true;
             },
-            commit(): void {},
-            shouldCommit(run, _completion, _prepared, info): boolean {
-                return run.generation === info.latestStartedGeneration;
+            _commit(): void {},
+            _shouldCommit(run, _completion, _prepared, info): boolean {
+                return run._generation === info._latestStartedGeneration;
             },
-            defaultErrorHandler(error): void {
+            _defaultErrorHandler(error): void {
                 console.error('Error in async effect:', error);
             },
-            onErrorCancel(): void {
+            _onErrorCancel(): void {
                 cancel();
             },
         },

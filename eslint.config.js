@@ -8,7 +8,7 @@ export default defineConfig(
         ignores: ['**/dist/**', '**/coverage/**', '**/.release-artifacts/**', '**/*.d.ts'],
     },
     {
-        files: ['eslint.config.js', 'vitest.config.ts', 'scripts/**/*.{js,mjs,cjs,ts}'],
+        files: ['eslint.config.js', 'vitest.config.ts', '**/scripts/**/*.{js,mjs,cjs,ts}'],
         languageOptions: {
             globals: globals.node,
         },

@@ -3,7 +3,7 @@ glob_matcher: doublestar
 pre-commit:
     jobs:
         - name: format
-          run: pnpm exec prettier --write --ignore-unknown {staged_files}
+          run: pnpm format {staged_files}
           glob:
               - '**/*.{js,jsx,ts,tsx,mjs,cjs,json,yml,yaml}'
           stage_fixed: true

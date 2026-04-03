@@ -19,11 +19,11 @@ export async function flushPromises(): Promise<void> {
 
 export function createTestState(): StoreState {
     return {
-        batchLevel: 0,
-        isUpdating: false,
-        isTracking: false,
-        pendingEffects: new Set(),
-        runs: [],
-        activeEffects: new Set(),
+        _batchLevel: 0,
+        _isUpdating: false,
+        _isTracking: false,
+        _pendingEffects: new Set(),
+        _runs: [],
+        _activeEffects: new Set(),
     };
 }

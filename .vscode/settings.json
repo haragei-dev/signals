@@ -7,7 +7,7 @@
   "explorer.fileNesting.patterns": {
     "*.ts": "${capture}.test.ts",
     "*.d.ts": "${capture}.map",
-    "package.json": ".git*, .editorconfig, .eslint*, .node-version, .pnpm*, pnpm-*, .prettier*, .vscode*, eslint*, prettier*, tsconfig.json, *.log, vite*.config.ts, turbo.json, lefthook.yml"
+    "package.json": ".git*, .editorconfig, .eslint*, .node-version, .pnpm*, pnpm-*, .prettier*, .vscode*, eslint*, prettier*, tsconfig.json, *.log, vite*.config.ts, turbo.json, lefthook.yml, tsdown.config.ts"
   },
   "search.exclude": {
     "**/node_modules": true,
@@ -16,6 +16,7 @@
   "js/ts.tsdk.path": "node_modules/typescript/lib",
   "prettier.prettierPath": "node_modules/prettier",
   "cSpell.words": [
+    "ampproject",
     "arethetypeswrong",
     "attw",
     "doublestar",
@@ -27,6 +28,7 @@
     "postpublish",
     "Preact",
     "ruleset",
+    "tsdown",
     "vite",
     "vitest"
   ],

@@ -9,20 +9,39 @@ import type {
     EffectRun,
     StoreState,
 } from './internal';
+import {
+    ABORT_CONTROL,
+    ABORT_RERUN,
+    ABORT_STOP,
+    CANCELED,
+    FULFILLED,
+    PENDING_ASYNC,
+    REJECTED,
+    RUNNING_SYNC,
+    SETTLED,
+} from './internal';
 import { DefaultInvalidationQueue } from './queue';
 import type { AsyncEffectErrorInfo, AsyncInvalidation, SignalReader } from './types';
 
+const CONCURRENCY_CANCEL = 0;
+const CONCURRENCY_CONCURRENT = 1;
+const CONCURRENCY_QUEUE = 2;
+
+const ERROR_MODE_REPORT = 0;
+const ERROR_MODE_CANCEL = 1;
+const ERROR_MODE_THROW = 2;
+
 interface AsyncRunnerOptions {
-    readonly signal?: AbortSignal | undefined;
-    readonly queue?:
+    readonly _signal?: AbortSignal | undefined;
+    readonly _queue?:
         | {
               enqueue(item: AsyncInvalidation): void;
               dequeue(): AsyncInvalidation | undefined;
               clear(): void;
           }
         | undefined;
-    readonly concurrency?: 'cancel' | 'concurrent' | 'queue';
-    readonly onError?:
+    readonly _concurrency?: 'cancel' | 'concurrent' | 'queue';
+    readonly _onError?:
         | {
               readonly mode?: 'report' | 'cancel' | 'throw';
               readonly handler?: ((error: unknown, info: AsyncEffectErrorInfo) => void) | undefined;
@@ -33,22 +52,39 @@ interface AsyncRunnerOptions {
 export function createAsyncRunner<Prepared, Result, Trigger = void>(
     state: StoreState,
     effect: EffectInstance,
-    { signal, queue, concurrency = 'cancel', onError }: AsyncRunnerOptions,
+    {
+        _signal: signal,
+        _queue: queue,
+        _concurrency: concurrency = 'cancel',
+        _onError: onError,
+    }: AsyncRunnerOptions,
     hooks: AsyncRunnerHooks<Prepared, Result, Trigger>,
 ): AsyncRunnerControl<Trigger> {
     if (queue && concurrency !== 'queue') {
         throw new Error('The queue option can only be used when concurrency is set to "queue"');
     }
 
+    const concurrencyMode =
+        concurrency === 'concurrent'
+            ? CONCURRENCY_CONCURRENT
+            : concurrency === 'queue'
+              ? CONCURRENCY_QUEUE
+              : CONCURRENCY_CANCEL;
+    const errorMode =
+        onError?.mode === 'cancel'
+            ? ERROR_MODE_CANCEL
+            : onError?.mode === 'throw'
+              ? ERROR_MODE_THROW
+              : ERROR_MODE_REPORT;
+
     const activeRuns = new Set<EffectRun>();
     const preparedRuns = new Map<EffectRun, Prepared>();
     const retainedDependencyUnlinks = new Set<() => void>();
     const pendingQueue =
-        concurrency === 'queue'
+        concurrencyMode === CONCURRENCY_QUEUE
             ? (queue ?? new DefaultInvalidationQueue<AsyncInvalidation>())
             : undefined;
-    const errorMode = onError?.mode ?? 'report';
-    const errorHandler = onError?.handler ?? hooks.defaultErrorHandler ?? (() => {});
+    const errorHandler = onError?.handler ?? hooks._defaultErrorHandler ?? (() => {});
 
     let generation = 0;
     let invalidationGeneration = 0;
@@ -74,20 +110,20 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     };
 
     const cleanupRun = (run: EffectRun): void => {
-        if (!run.dependenciesComplete) {
-            for (const unlink of run.dependencyUnlinks) {
+        if (!run._areDependenciesComplete) {
+            for (const unlink of run._dependencyUnlinks) {
                 unlink();
             }
-            run.dependencyUnlinks.clear();
-            run.dependenciesComplete = true;
+            run._dependencyUnlinks.clear();
+            run._areDependenciesComplete = true;
         }
 
-        if (!run.cleanupComplete) {
-            for (const cleanup of run.cleanups) {
+        if (!run._isCleanupComplete) {
+            for (const cleanup of run._cleanups) {
                 cleanupCallback(cleanup);
             }
-            run.cleanups.clear();
-            run.cleanupComplete = true;
+            run._cleanups.clear();
+            run._isCleanupComplete = true;
         }
 
         preparedRuns.delete(run);
@@ -98,16 +134,16 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     };
 
     const preserveRunDependencies = (run: EffectRun): void => {
-        for (const unlink of run.dependencyUnlinks) {
+        for (const unlink of run._dependencyUnlinks) {
             retainedDependencyUnlinks.add(unlink);
         }
-        run.dependencyUnlinks.clear();
-        run.dependenciesComplete = true;
+        run._dependencyUnlinks.clear();
+        run._areDependenciesComplete = true;
     };
 
     const abortHelpers: AsyncRunnerAbortHelpers = {
-        cleanupRun,
-        preserveRunDependencies,
+        _cleanupRun: cleanupRun,
+        _preserveRunDependencies: preserveRunDependencies,
     };
 
     const clearCommittedRun = (): void => {
@@ -120,12 +156,12 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
 
     const finishRun = (run: EffectRun): void => {
         activeRuns.delete(run);
-        run.active = false;
+        run._isActive = false;
     };
 
     const hasBlockingRun = (): boolean => {
         for (const run of activeRuns) {
-            if (run.state === 'pending-async' || run.state === 'canceled') {
+            if (run._state === PENDING_ASYNC || run._state === CANCELED) {
                 return true;
             }
         }
@@ -135,21 +171,21 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
 
     const handleAsyncError = (error: unknown, run: EffectRun): void => {
         const info: AsyncEffectErrorInfo = {
-            generation: run.generation,
+            generation: run._generation,
             concurrency,
-            signal: run.signal,
-            canceled: run.signal.aborted,
+            signal: run._signal,
+            canceled: run._signal.aborted,
         };
 
         errorHandler(error, info);
 
-        if (errorMode === 'cancel') {
-            if (hooks.onErrorCancel) {
-                hooks.onErrorCancel(control);
+        if (errorMode === ERROR_MODE_CANCEL) {
+            if (hooks._onErrorCancel) {
+                hooks._onErrorCancel(control);
             } else {
-                control.stop();
+                control._stop();
             }
-        } else if (errorMode === 'throw') {
+        } else if (errorMode === ERROR_MODE_THROW) {
             queueMicrotask(() => {
                 throw error;
             });
@@ -159,60 +195,60 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     const createRun = (): EffectRun => {
         const controller = new AbortController();
         return {
-            effect,
-            generation: ++generation,
-            cleanups: new Set(),
-            dependencyUnlinks: new Set(),
-            controller,
-            signal: controller.signal,
-            state: 'running-sync',
-            cleanupComplete: false,
-            dependenciesComplete: false,
-            active: true,
-            tracking: true,
-            onDependencyCleanup(unlink) {
-                this.dependencyUnlinks.add(unlink);
+            _effect: effect,
+            _generation: ++generation,
+            _cleanups: new Set(),
+            _dependencyUnlinks: new Set(),
+            _controller: controller,
+            _signal: controller.signal,
+            _state: RUNNING_SYNC,
+            _isCleanupComplete: false,
+            _areDependenciesComplete: false,
+            _isActive: true,
+            _isTracking: true,
+            _onDependencyCleanup(unlink) {
+                this._dependencyUnlinks.add(unlink);
             },
         };
     };
 
     const registerCleanup = (run: EffectRun, cleanup: () => void): void => {
-        if (run.cleanupComplete) {
+        if (run._isCleanupComplete) {
             cleanupCallback(cleanup);
             return;
         }
 
-        run.cleanups.add(cleanup);
+        run._cleanups.add(cleanup);
     };
 
     const track = <T>(run: EffectRun, read: SignalReader<T>): T => {
         if (
-            !run.active ||
-            run.state === 'canceled' ||
-            run.dependenciesComplete ||
-            run.cleanupComplete
+            !run._isActive ||
+            run._state === CANCELED ||
+            run._areDependenciesComplete ||
+            run._isCleanupComplete
         ) {
             return read();
         }
 
-        const wasTracking = state.isTracking;
-        const previousTracking = run.tracking;
+        const wasTracking = state._isTracking;
+        const previousTracking = run._isTracking;
 
-        state.runs.push(run);
-        state.isTracking = true;
-        run.tracking = true;
+        state._runs.push(run);
+        state._isTracking = true;
+        run._isTracking = true;
 
         try {
             return read();
         } finally {
-            run.tracking = previousTracking;
-            state.isTracking = wasTracking;
-            state.runs.pop();
+            run._isTracking = previousTracking;
+            state._isTracking = wasTracking;
+            state._runs.pop();
         }
     };
 
     const startNextQueuedRun = (): void => {
-        if (stopped || concurrency !== 'queue' || !pendingQueue || hasBlockingRun()) {
+        if (stopped || concurrencyMode !== CONCURRENCY_QUEUE || !pendingQueue || hasBlockingRun()) {
             return;
         }
 
@@ -225,12 +261,14 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         startRun();
     };
 
-    const commitInfo = (): AsyncRunnerCommitInfo => ({ latestStartedGeneration });
+    const commitInfo = (): AsyncRunnerCommitInfo => ({
+        _latestStartedGeneration: latestStartedGeneration,
+    });
 
     const finalizeCompletion = (run: EffectRun, completion: AsyncRunCompletion<Result>): void => {
         finishRun(run);
 
-        if (run.state === 'canceled') {
+        if (run._state === CANCELED) {
             if (pendingRerun) {
                 pendingRerun = false;
                 startRun();
@@ -242,10 +280,10 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         }
 
         const prepared = preparedRuns.get(run) as Prepared;
-        run.state = 'settled';
+        run._state = SETTLED;
 
-        if (completion.status === 'rejected') {
-            handleAsyncError(completion.error, run);
+        if (completion._status === REJECTED) {
+            handleAsyncError(completion._error, run);
         }
 
         if (stopped) {
@@ -254,10 +292,10 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             return;
         }
 
-        const shouldCommit = hooks.shouldCommit?.(run, completion, prepared, commitInfo()) ?? true;
+        const shouldCommit = hooks._shouldCommit?.(run, completion, prepared, commitInfo()) ?? true;
 
         if (shouldCommit) {
-            hooks.commit(run, completion, prepared);
+            hooks._commit(run, completion, prepared);
             currentCommittedRun = run;
         } else {
             cleanupRun(run);
@@ -266,22 +304,25 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         startNextQueuedRun();
     };
 
-    const abortRun = (run: EffectRun, kind: 'rerun' | 'control' | 'stop'): void => {
+    const abortRun = (
+        run: EffectRun,
+        kind: typeof ABORT_RERUN | typeof ABORT_CONTROL | typeof ABORT_STOP,
+    ): void => {
         if (preparedRuns.has(run)) {
             const prepared = preparedRuns.get(run) as Prepared;
 
-            if (hooks.abortRun?.(run, prepared, kind, abortHelpers)) {
+            if (hooks._abortRun?.(run, prepared, kind, abortHelpers)) {
                 return;
             }
         }
 
-        run.tracking = false;
+        run._isTracking = false;
 
-        if (!run.signal.aborted) {
-            run.controller.abort();
+        if (!run._signal.aborted) {
+            run._controller.abort();
         }
 
-        run.state = 'canceled';
+        run._state = CANCELED;
         cleanupRun(run);
     };
 
@@ -292,7 +333,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     };
 
     const mergeTrigger = (trigger: Trigger | undefined): void => {
-        nextTrigger = hooks.mergeTrigger?.(nextTrigger, trigger) ?? trigger ?? nextTrigger;
+        nextTrigger = hooks._mergeTrigger?.(nextTrigger, trigger) ?? trigger ?? nextTrigger;
     };
 
     const startRun = (): void => {
@@ -303,46 +344,46 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             return;
         }
 
-        const prepared = hooks.prepare(consumeTrigger());
+        const prepared = hooks._prepare(consumeTrigger());
         const run = createRun();
 
-        latestStartedGeneration = run.generation;
+        latestStartedGeneration = run._generation;
         activeRuns.add(run);
         preparedRuns.set(run, prepared);
-        state.runs.push(run);
-        const wasTracking = state.isTracking;
-        state.isTracking = true;
+        state._runs.push(run);
+        const wasTracking = state._isTracking;
+        state._isTracking = true;
 
         let result: Result | PromiseLike<Result>;
 
         try {
-            result = hooks.execute(
+            result = hooks._execute(
                 {
-                    signal: run.signal,
-                    onCleanup(cleanup) {
+                    _signal: run._signal,
+                    _onCleanup(cleanup) {
                         registerCleanup(run, cleanup);
                     },
-                    track<T>(read: SignalReader<T>): T {
+                    _track<T>(read: SignalReader<T>): T {
                         return track(run, read);
                     },
                 } satisfies AsyncRunnerContext,
                 prepared,
             );
         } catch (error) {
-            run.tracking = false;
-            state.isTracking = wasTracking;
-            state.runs.pop();
+            run._isTracking = false;
+            state._isTracking = wasTracking;
+            state._runs.pop();
             finishRun(run);
             cleanupRun(run);
-            control.stop();
+            control._stop();
             throw error;
         }
 
-        run.tracking = false;
-        state.isTracking = wasTracking;
-        state.runs.pop();
+        run._isTracking = false;
+        state._isTracking = wasTracking;
+        state._runs.pop();
 
-        if (run.state === 'canceled') {
+        if (run._state === CANCELED) {
             finishRun(run);
             cleanupRun(run);
             startNextQueuedRun();
@@ -351,21 +392,21 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
 
         const currentPrepared = preparedRuns.get(run) as Prepared;
         if (!isPromiseLike(result)) {
-            hooks.handleSyncResult?.(run, result, currentPrepared);
+            hooks._handleSyncResult?.(run, result, currentPrepared);
 
-            run.state = 'settled';
+            run._state = SETTLED;
             currentCommittedRun = run;
             return;
         }
 
-        run.state = 'pending-async';
+        run._state = PENDING_ASYNC;
 
         void Promise.resolve(result).then(
             (value) => {
-                finalizeCompletion(run, { status: 'fulfilled', value });
+                finalizeCompletion(run, { _status: FULFILLED, _value: value });
             },
             (error: unknown) => {
-                finalizeCompletion(run, { status: 'rejected', error });
+                finalizeCompletion(run, { _status: REJECTED, _error: error });
             },
         );
     };
@@ -375,17 +416,20 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             return;
         }
 
-        if (fromDependency && state.runs.some((run) => run.effect === effect && run.tracking)) {
+        if (
+            fromDependency &&
+            state._runs.some((run) => run._effect === effect && run._isTracking)
+        ) {
             throw new Error('Cyclic dependency detected');
         }
 
         mergeTrigger(trigger);
 
-        if (concurrency === 'cancel') {
+        if (concurrencyMode === CONCURRENCY_CANCEL) {
             if (hasBlockingRun()) {
                 pendingRerun = true;
                 for (const run of activeRuns) {
-                    abortRun(run, 'rerun');
+                    abortRun(run, ABORT_RERUN);
                 }
                 return;
             }
@@ -394,7 +438,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             return;
         }
 
-        if (concurrency === 'concurrent') {
+        if (concurrencyMode === CONCURRENCY_CONCURRENT) {
             startRun();
             return;
         }
@@ -408,13 +452,13 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     };
 
     const control: AsyncRunnerControl<Trigger> = {
-        invalidate(trigger?: Trigger): void {
+        _invalidate(trigger?: Trigger): void {
             invalidate(trigger, false);
         },
-        invalidateFromDependency(trigger?: Trigger): void {
+        _invalidateFromDependency(trigger?: Trigger): void {
             invalidate(trigger, true);
         },
-        cancelActive(): void {
+        _cancelActive(): void {
             if (stopped) {
                 return;
             }
@@ -423,10 +467,10 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             pendingQueue?.clear();
 
             for (const run of activeRuns) {
-                abortRun(run, 'control');
+                abortRun(run, ABORT_CONTROL);
             }
         },
-        stop(): void {
+        _stop(): void {
             if (stopped) {
                 return;
             }
@@ -434,14 +478,14 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             stopped = true;
             pendingRerun = false;
             pendingQueue?.clear();
-            state.pendingEffects.delete(effect);
-            state.activeEffects.delete(effect);
+            state._pendingEffects.delete(effect);
+            state._activeEffects.delete(effect);
             clearCommittedRun();
             clearRetainedDependencies();
-            hooks.onStop?.();
+            hooks._onStop?.();
 
             for (const run of activeRuns) {
-                abortRun(run, 'stop');
+                abortRun(run, ABORT_STOP);
             }
         },
     };
@@ -450,13 +494,13 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         signal.addEventListener(
             'abort',
             () => {
-                control.stop();
+                control._stop();
             },
             { once: true },
         );
     }
 
-    state.activeEffects.add(effect);
+    state._activeEffects.add(effect);
 
     return control;
 }

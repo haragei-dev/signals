@@ -19,15 +19,15 @@ export function createSignal<T>(
     initialValue: T,
     { equals = structuralEqual }: SignalOptions = {},
 ): Signal<T> {
-    const dependencies = new Set<(typeof state.runs)[number]>();
+    const dependencies = new Set<(typeof state._runs)[number]>();
     let value = initialValue;
 
     const read = (): T => {
-        if (state.isTracking) {
-            const run = state.runs.at(-1);
-            if (run?.tracking && !dependencies.has(run)) {
+        if (state._isTracking) {
+            const run = state._runs.at(-1);
+            if (run?._isTracking && !dependencies.has(run)) {
                 dependencies.add(run);
-                run.onDependencyCleanup(() => dependencies.delete(run));
+                run._onDependencyCleanup(() => dependencies.delete(run));
             }
         }
         return value;
@@ -45,11 +45,11 @@ export function createSignal<T>(
         const effects = new Set<EffectInstance>();
 
         for (const run of dependencies) {
-            effects.add(run.effect);
+            effects.add(run._effect);
         }
 
         for (const fx of effects) {
-            state.pendingEffects.add(fx);
+            state._pendingEffects.add(fx);
         }
 
         flushPendingEffects(state);
@@ -59,13 +59,13 @@ export function createSignal<T>(
 }
 
 export function readUntracked<T>(state: StoreState, read: SignalReader<T>): T {
-    const wasTracking = state.isTracking;
+    const wasTracking = state._isTracking;
 
-    state.isTracking = false;
+    state._isTracking = false;
 
     try {
         return read();
     } finally {
-        state.isTracking = wasTracking;
+        state._isTracking = wasTracking;
     }
 }
