@@ -1,14 +1,14 @@
 import {
     type AsyncEffectFunction,
     type AsyncEffectOptions,
-    createStore,
     type EffectFunction,
     type EffectOptions,
     type ResourceConstructor,
     type Signal,
     type SignalOptions,
     type SignalReader,
-} from './store';
+} from './store/types';
+import { createStore } from './store/store';
 
 /**
  * The global store.

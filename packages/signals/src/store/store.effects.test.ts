@@ -5,7 +5,6 @@ import {
     type AsyncEffectOptions,
     type AsyncEffectErrorInfo,
     type AsyncInvalidation,
-    createStore,
     type BatchFunction,
     type EffectConstructor,
     type EffectContext,
@@ -14,7 +13,8 @@ import {
     type MemoConstructor,
     type SignalConstructor,
     type SignalReader,
-} from '../store';
+} from './types';
+import { createStore } from './store';
 
 describe('effect()', () => {
     let signal: SignalConstructor;

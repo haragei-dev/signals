@@ -2,8 +2,6 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { deferred, flushPromises } from '../test/store-test-helpers';
 import {
     type AsyncInvalidation,
-    createStore,
-    DefaultInvalidationQueue,
     type EffectConstructor,
     type InvalidationQueue,
     type MemoConstructor,
@@ -13,7 +11,9 @@ import {
     type ResourceState,
     type RunCause,
     type SignalConstructor,
-} from '../store';
+} from './types';
+import { DefaultInvalidationQueue } from './queue';
+import { createStore } from './store';
 
 describe('resource()', () => {
     let signal: SignalConstructor;

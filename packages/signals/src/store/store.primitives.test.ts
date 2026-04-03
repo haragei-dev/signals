@@ -2,16 +2,16 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { equalFunc } from '../equal';
 import { deferred, flushPromises } from '../test/store-test-helpers';
 import {
-    createStore,
     type BatchFunction,
-    DefaultInvalidationQueue,
     type EffectConstructor,
     type MemoConstructor,
     type SignalConstructor,
     type SignalReader,
     type SignalUpdater,
     type UntrackedReader,
-} from '../store';
+} from './types';
+import { DefaultInvalidationQueue } from './queue';
+import { createStore } from './store';
 
 describe('createStore()', () => {
     it('Creates a new store.', () => {

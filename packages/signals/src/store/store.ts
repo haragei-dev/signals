@@ -19,7 +19,7 @@ import type {
     UntrackedReader,
 } from './types';
 
-class StoreImpl implements Store {
+class SignalStore implements Store {
     readonly #state: StoreState = {
         batchLevel: 0,
         isUpdating: false,
@@ -94,5 +94,5 @@ class StoreImpl implements Store {
  * @returns A new store.
  */
 export function createStore(): Store {
-    return new StoreImpl();
+    return new SignalStore();
 }

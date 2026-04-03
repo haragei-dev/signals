@@ -12,11 +12,15 @@ export default mergeConfig(
                 exclude: [
                     '**/*.test.ts',
                     'src/index.ts',
-                    'src/store.ts',
-                    'src/store/index.ts',
                     'src/store/internal.ts',
                     'src/store/types.ts',
                 ],
+                thresholds: {
+                    lines: 100,
+                    functions: 100,
+                    branches: 100,
+                    statements: 100,
+                },
             },
         },
     }),

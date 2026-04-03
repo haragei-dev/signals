@@ -11,7 +11,7 @@ import type {
     SignalConstructor,
     Store,
     UntrackedReader,
-} from './store';
+} from './store/types';
 
 describe('public API', () => {
     it('should expose the createStore() function', () => {
