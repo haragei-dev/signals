@@ -7,23 +7,32 @@
   "explorer.fileNesting.patterns": {
     "*.ts": "${capture}.test.ts",
     "*.d.ts": "${capture}.map",
-    "package.json": ".git*, .editorconfig, .eslint*, .node-version, .pnpm*, pnpm-*, .prettier*, .vscode*, eslint*, prettier*, tsconfig.json, *.log, vite*.config.ts"
+    "package.json": ".git*, .editorconfig, .eslint*, .node-version, .pnpm*, pnpm-*, .prettier*, .vscode*, eslint*, prettier*, tsconfig.json, *.log, vite*.config.ts, turbo.json, lefthook.yml"
   },
   "search.exclude": {
     "**/node_modules": true,
     "**/dist": true
   },
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
   "prettier.prettierPath": "node_modules/prettier",
   "cSpell.words": [
     "arethetypeswrong",
     "attw",
+    "doublestar",
+    "esbuild",
+    "haragei",
+    "lefthook",
     "nonconstructor",
     "pkgroll",
     "postpublish",
     "Preact",
     "ruleset",
-    "signali"
+    "vite",
+    "vitest"
   ],
-  "references.preferredLocation": "peek"
+  "references.preferredLocation": "peek",
+  "json.schemaDownload.trustedDomains": {
+    "https://unpkg.com/@changesets": true,
+    "https://*.turborepo.dev": true
+  }
 }

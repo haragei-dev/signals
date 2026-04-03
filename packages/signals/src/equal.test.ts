@@ -121,12 +121,9 @@ describe('shallowlyEqual()', () => {
     });
 
     it('Returns false for two Map objects with structurally equal object keys.', () => {
-        expect(
-            shallowlyEqual(
-                new Map([[{ foo: 1 }, 'bar']]),
-                new Map([[{ foo: 1 }, 'bar']]),
-            ),
-        ).toBe(false);
+        expect(shallowlyEqual(new Map([[{ foo: 1 }, 'bar']]), new Map([[{ foo: 1 }, 'bar']]))).toBe(
+            false,
+        );
     });
 
     it('Returns true for two Set objects with equal entries.', () => {
@@ -333,22 +330,16 @@ describe('equal()', () => {
         const sharedA = { foo: 1 };
         const sharedB = { foo: 1 };
 
-        expect(
-            equal(
-                { left: sharedA, right: sharedA },
-                { left: sharedB, right: sharedB },
-            ),
-        ).toBe(true);
+        expect(equal({ left: sharedA, right: sharedA }, { left: sharedB, right: sharedB })).toBe(
+            true,
+        );
     });
 
     it('Returns true when the same left-hand object is compared to distinct but equal right-hand objects.', () => {
         const shared = { foo: 1 };
 
         expect(
-            equal(
-                { left: shared, right: shared },
-                { left: { foo: 1 }, right: { foo: 1 } },
-            ),
+            equal({ left: shared, right: shared }, { left: { foo: 1 }, right: { foo: 1 } }),
         ).toBe(true);
     });
 
@@ -363,10 +354,7 @@ describe('equal()', () => {
 
     it('Returns false for two Map objects with equal keys but different mapped values.', () => {
         expect(
-            equal(
-                new Map([[{ foo: 1 }, { bar: 2 }]]),
-                new Map([[{ foo: 1 }, { bar: 3 }]]),
-            ),
+            equal(new Map([[{ foo: 1 }, { bar: 2 }]]), new Map([[{ foo: 1 }, { bar: 3 }]])),
         ).toBe(false);
     });
 

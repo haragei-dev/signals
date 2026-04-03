@@ -2,14 +2,14 @@
 
 ## Overview
 
-Effects run reactive side effects whenever the signals, memos, or resources they depend on change. `mali-signali` supports both synchronous and asynchronous effects.
+Effects run reactive side effects whenever the signals, memos, or resources they depend on change. `@haragei/signals` supports both synchronous and asynchronous effects.
 
 This page covers `effect()`, `EffectContext`, `EffectFunction`, `AsyncEffectContext`, `AsyncEffectFunction`, `EffectConstructor`, `EffectOptions`, `AsyncEffectOptions`, `AsyncEffectErrorOptions`, `AsyncEffectErrorInfo`, `AsyncEffectErrorMode`, and `AsyncEffectConcurrency`.
 
 ## Canonical Example
 
 ```ts
-import { effect, memo, signal } from 'mali-signali';
+import { effect, memo, signal } from '@haragei/signals';
 
 const [count, setCount] = signal(0);
 const doubled = memo(() => count() * 2);
@@ -284,7 +284,7 @@ When `concurrency` is `'queue'`, you may pass a custom queue.
 See [`utilities.md`](./utilities.md) for the full queue API. In effect code, the common pattern is:
 
 ```ts
-import { DefaultInvalidationQueue, effect } from 'mali-signali';
+import { DefaultInvalidationQueue, effect } from '@haragei/signals';
 
 const queue = new DefaultInvalidationQueue();
 

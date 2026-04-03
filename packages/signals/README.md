@@ -69,43 +69,39 @@ effect(() => {
 
 Signals are mutable reactive values. Reading a signal inside an effect or memo creates a dependency. Updating it re-runs the dependents that use it.
 
-API reference: [`packages/signals/docs/api/signals.md`](./packages/signals/docs/api/signals.md)
+API reference: [`docs/api/signals.md`](./docs/api/signals.md)
 
 ### Memos
 
 Memos are derived read-only signals. They recompute automatically when their dependencies change and are best used for idempotent derived values.
 
-API reference: [`packages/signals/docs/api/memos.md`](./packages/signals/docs/api/memos.md)
+API reference: [`docs/api/memos.md`](./docs/api/memos.md)
 
 ### Effects
 
 Effects react to signal, memo, and resource changes. They support cleanup callbacks, cancellation, async execution, post-`await` manual dependency tracking via `track()`, and configurable async concurrency behavior.
 
-API reference: [`packages/signals/docs/api/effects.md`](./packages/signals/docs/api/effects.md)
+API reference: [`docs/api/effects.md`](./docs/api/effects.md)
 
 ### Resources
 
 Resources model async derived state. They expose loading, ready, and error states, keep stale values while refreshing, and provide imperative controls such as `refresh()`, `abort()`, and `reset()`.
 
-API reference: [`packages/signals/docs/api/resources.md`](./packages/signals/docs/api/resources.md)
+API reference: [`docs/api/resources.md`](./docs/api/resources.md)
 
 ### Stores
 
 Stores isolate reactive graphs. The global APIs are convenience wrappers around a default global store, while `createStore()` lets you construct independent stores explicitly.
 
-API reference: [`packages/signals/docs/api/store.md`](./packages/signals/docs/api/store.md)
+API reference: [`docs/api/store.md`](./docs/api/store.md)
 
 ### Utilities
 
 The shared runtime utilities cover batching, untracked reads, and queue primitives used by async effects and resources.
 
-API reference: [`packages/signals/docs/api/utilities.md`](./packages/signals/docs/api/utilities.md)
+API reference: [`docs/api/utilities.md`](./docs/api/utilities.md)
 
-For the full API documentation landing page, see [`packages/signals/docs/api/README.md`](./packages/signals/docs/api/README.md).
-
-## Packages
-
-- [`@haragei/signals`](./packages/signals) - the core framework-agnostic reactive state library
+For the full API documentation landing page, see [`docs/api/README.md`](./docs/api/README.md).
 
 ## License
 

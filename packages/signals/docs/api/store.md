@@ -12,7 +12,7 @@ Use stores when you want:
 ## Canonical Example
 
 ```ts
-import { createStore } from 'mali-signali';
+import { createStore } from '@haragei/signals';
 
 const store = createStore();
 

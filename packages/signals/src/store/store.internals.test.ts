@@ -14,11 +14,16 @@ describe('createAsyncRunner()', () => {
             cancel() {},
         };
 
-        const control = createAsyncRunner(state, effect, {}, {
-            prepare() {},
-            execute() {},
-            commit() {},
-        });
+        const control = createAsyncRunner(
+            state,
+            effect,
+            {},
+            {
+                prepare() {},
+                execute() {},
+                commit() {},
+            },
+        );
 
         control.stop();
         control.cancelActive();
@@ -41,18 +46,23 @@ describe('createAsyncRunner()', () => {
         const [read, write] = createSignal(state, 0);
         const runs: number[] = [];
 
-        const control = createAsyncRunner(state, effect, {}, {
-            prepare() {
-                return undefined;
+        const control = createAsyncRunner(
+            state,
+            effect,
+            {},
+            {
+                prepare() {
+                    return undefined;
+                },
+                execute() {
+                    runs.push(read());
+                },
+                commit() {},
+                shouldCommit(run, _completion, _prepared, info) {
+                    return run.generation === info.latestStartedGeneration;
+                },
             },
-            execute() {
-                runs.push(read());
-            },
-            commit() {},
-            shouldCommit(run, _completion, _prepared, info) {
-                return run.generation === info.latestStartedGeneration;
-            },
-        });
+        );
 
         control.invalidate();
 

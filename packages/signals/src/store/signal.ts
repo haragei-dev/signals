@@ -1,12 +1,7 @@
 import { structuralEqual } from '../equal';
 import type { EffectInstance, StoreState } from './internal';
 import { flushPendingEffects } from './flush';
-import type {
-    Signal,
-    SignalOptions,
-    SignalReader,
-    SignalUpdater,
-} from './types';
+import type { Signal, SignalOptions, SignalReader, SignalUpdater } from './types';
 
 const signalTuple = class SignalTuple<T> extends Array<SignalReader<T> | SignalUpdater<T>> {
     public readonly read: SignalReader<T>;

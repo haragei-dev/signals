@@ -1,0 +1,64 @@
+{
+  "name": "@haragei/signals",
+  "version": "1.0.0",
+  "author": "Aleksandar Ružičić",
+  "license": "MIT",
+  "description": "A lightweight, framework-agnostic TypeScript library for reactive state management.",
+  "keywords": [
+    "state",
+    "state management",
+    "signal",
+    "effect",
+    "signal pattern",
+    "reactivity"
+  ],
+  "homepage": "https://github.com/haragei/signals",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haragei/signals.git",
+    "directory": "packages/signals"
+  },
+  "bugs": {
+    "url": "https://github.com/haragei/signals/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    "require": {
+      "types": "./dist/index.d.cts",
+      "default": "./dist/index.cjs"
+    },
+    "import": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "directory": "package"
+  },
+  "clean-publish": {
+    "withoutPublish": true,
+    "tempDir": "package",
+    "fields": [
+      "packageManager",
+      "pnpm",
+      "publishConfig",
+      "scripts"
+    ]
+  },
+  "scripts": {
+    "build": "pkgroll --target=node22 --minify --sourcemap",
+    "lint": "eslint ./src --config ../../eslint.config.js",
+    "test": "vitest run --config ./vitest.config.ts",
+    "test:coverage": "vitest run --coverage --config ./vitest.config.ts",
+    "typecheck": "tsc --noEmit -p ./tsconfig.json",
+    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && rm -rf ./package && clean-publish && env npm_config_cache=/tmp/npm-cache attw --pack ./package",
+    "postpublish": "rm -rf ./package"
+  }
+}

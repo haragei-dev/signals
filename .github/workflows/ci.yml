@@ -1,4 +1,4 @@
-name: "CI: Lint, Typecheck, Test and Build"
+name: 'CI: Lint, Typecheck, Test and Build'
 permissions: {}
 
 on:
@@ -16,6 +16,8 @@ jobs:
             #
             - name: Checkout code
               uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+              with:
+                  fetch-depth: 0
 
             #
             # Setup PNPM
@@ -32,6 +34,7 @@ jobs:
               uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
               with:
                   node-version-file: .node-version
+                  cache: pnpm
 
             #
             # Install dependencies
@@ -42,9 +45,22 @@ jobs:
                   pnpm install --frozen-lockfile
 
             #
+            # Verify formatting on PR-changed files
+            #
+            - name: Check Prettier Formatting For Changed Files
+              if: github.event_name == 'pull_request'
+              shell: bash
+              run: |
+                  git diff --name-only --diff-filter=ACMR -z "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" \
+                    | xargs -0 -r pnpm exec prettier --check --ignore-unknown
+
+            #
             # Run Lint + Typecheck + Test + Build
             #
             - name: Lint + Typecheck + Test + Build
               shell: bash
               run: |
-                  pnpm run prepublishOnly
+                  pnpm lint
+                  pnpm typecheck
+                  pnpm test
+                  pnpm build

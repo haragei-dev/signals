@@ -1,0 +1,27 @@
+glob_matcher: doublestar
+
+pre-commit:
+    jobs:
+        - name: format
+          run: pnpm exec prettier --write --ignore-unknown {staged_files}
+          glob:
+              - '**/*.{js,jsx,ts,tsx,mjs,cjs,json,yml,yaml}'
+          stage_fixed: true
+
+        - name: lint
+          run: pnpm exec eslint --fix --config ./eslint.config.js {staged_files}
+          glob:
+              - '**/*.{js,jsx,ts,tsx,mjs,cjs}'
+          stage_fixed: true
+
+        - name: test
+          run: pnpm test
+          glob:
+              - 'packages/**/*.{js,jsx,ts,tsx,mjs,cjs}'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'eslint.config.js'
+              - 'vitest.config.ts'
+              - 'tsconfig.json'
+              - 'tsconfig.base.json'

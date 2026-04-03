@@ -1,80 +1,47 @@
 {
-  "name": "mali-signali",
-  "version": "1.4.0",
-  "author": "Aleksandar Ružičić",
-  "license": "MIT",
-  "description": "A Lightweight, framework-agnostic TypeScript library for reactive state management.",
-  "keywords": [
-    "state",
-    "state management",
-    "signal",
-    "effect",
-    "signal pattern",
-    "reactivity"
-  ],
-  "homepage": "https://github.com/raleksandar/mali-signali",
-  "repository": "github:raleksandar/mali-signali",
-  "bugs": {
-    "url": "https://github.com/raleksandar/mali-signali/issues"
-  },
+  "name": "@haragei/signals-workspace",
+  "private": true,
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.cts",
-  "exports": {
-    "require": {
-      "types": "./dist/index.d.cts",
-      "default": "./dist/index.cjs"
-    },
-    "import": {
-      "types": "./dist/index.d.mts",
-      "default": "./dist/index.mjs"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "publishConfig": {
-    "directory": "package"
-  },
-  "clean-publish": {
-    "withoutPublish": true,
-    "tempDir": "package",
-    "fields": [
-      "packageManager",
-      "pnpm",
-      "publishConfig",
-      "scripts"
-    ]
-  },
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "build": "pkgroll --target=node22 --minify --sourcemap && pnpm verify:artifact ./dist",
-    "lint": "eslint ./src",
-    "postpublish": "rm -rf ./package",
-    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && rm -rf ./package && clean-publish && pnpm verify:artifact ./package/dist && env npm_config_cache=/tmp/npm-cache attw --pack ./package",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "verify:artifact": "node ./scripts/verify-artifact.mjs"
+    "prepare": "lefthook install",
+    "turbo": "turbo",
+    "build": "turbo run build",
+    "format": "sh -c 'tmp=$(mktemp); git diff --name-only --diff-filter=ACMR -z > \"$tmp\"; git diff --cached --name-only --diff-filter=ACMR -z >> \"$tmp\"; git ls-files --others --exclude-standard -z >> \"$tmp\"; if [ -s \"$tmp\" ]; then xargs -0 pnpm exec prettier --write --ignore-unknown < \"$tmp\"; fi; rm -f \"$tmp\"'",
+    "format:check": "prettier --check .",
+    "lint": "pnpm exec eslint eslint.config.js vitest.config.ts scripts --config ./eslint.config.js && turbo run lint",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "typecheck": "turbo run typecheck",
+    "prepublishOnly": "turbo run prepublishOnly",
+    "changeset": "changeset",
+    "version:packages": "changeset version",
+    "release:pack": "node ./scripts/pack-public-packages.mjs",
+    "release:notes": "node ./scripts/generate-release-notes.mjs",
+    "release:publish:npm": "node ./scripts/publish-release-artifacts.mjs --registry=https://registry.npmjs.org --token-env=NPM_TOKEN",
+    "release:publish:github": "node ./scripts/publish-release-artifacts.mjs --registry=https://npm.pkg.github.com --token-env=GH_PACKAGES_TOKEN"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "0.18.2",
-    "@eslint/js": "10.0.1",
-    "@types/node": "25.5.0",
-    "@vitest/coverage-v8": "4.1.2",
-    "clean-publish": "6.0.5",
-    "eslint": "10.1.0",
-    "glob": "13.0.6",
-    "happy-dom": "20.8.9",
-    "pkgroll": "2.27.0",
-    "prettier": "3.8.1",
-    "tsx": "4.21.0",
-    "typescript": "6.0.2",
-    "typescript-eslint": "8.58.0",
-    "typescript-eslint-language-service": "5.0.5",
-    "vite": "8.0.3",
-    "vitest": "4.1.2"
-  },
-  "packageManager": "pnpm@10.33.0"
+    "@arethetypeswrong/cli": "catalog:",
+    "@changesets/changelog-git": "catalog:",
+    "@changesets/cli": "catalog:",
+    "@eslint/js": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "clean-publish": "catalog:",
+    "eslint": "catalog:",
+    "glob": "catalog:",
+    "globals": "catalog:",
+    "happy-dom": "catalog:",
+    "lefthook": "catalog:",
+    "pkgroll": "catalog:",
+    "prettier": "catalog:",
+    "turbo": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "typescript-eslint-language-service": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
 }

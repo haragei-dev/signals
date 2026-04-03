@@ -14,7 +14,7 @@ It also covers the helper type aliases `BatchFunction` and `UntrackedReader`.
 ## Canonical Example
 
 ```ts
-import { batch, effect, signal, untracked } from 'mali-signali';
+import { batch, effect, signal, untracked } from '@haragei/signals';
 
 const [a, setA] = signal(1);
 const [b, setB] = signal(2);
@@ -122,7 +122,7 @@ interface InvalidationQueue<T = AsyncInvalidation> {
 Built-in FIFO queue implementation backed by a simple array.
 
 ```ts
-import { DefaultInvalidationQueue } from 'mali-signali';
+import { DefaultInvalidationQueue } from '@haragei/signals';
 
 const queue = new DefaultInvalidationQueue();
 ```
@@ -136,7 +136,7 @@ It implements:
 Example with an async effect:
 
 ```ts
-import { DefaultInvalidationQueue, effect } from 'mali-signali';
+import { DefaultInvalidationQueue, effect } from '@haragei/signals';
 
 const queue = new DefaultInvalidationQueue();
 

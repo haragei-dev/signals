@@ -49,13 +49,7 @@ function getLoadingState<T, E = unknown>(previous: ResourceState<T, E>): Resourc
 export function createResource<T, E = unknown>(
     state: StoreState,
     load: (context: ResourceContext<T, E>) => Promise<T>,
-    {
-        signal,
-        queue,
-        concurrency = 'cancel',
-        onError,
-        writes = 'latest',
-    }: ResourceOptions = {},
+    { signal, queue, concurrency = 'cancel', onError, writes = 'latest' }: ResourceOptions = {},
 ): readonly [SignalReader<ResourceState<T, E>>, ResourceControls] {
     if (signal?.aborted) {
         const [read] = createSignal<ResourceState<T, E>>(state, createIdleState<T, E>());

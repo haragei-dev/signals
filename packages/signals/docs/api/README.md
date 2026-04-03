@@ -1,6 +1,6 @@
 # API Reference
 
-This directory contains the full handwritten API reference for `mali-signali`.
+This directory contains the full handwritten API reference for `@haragei/signals`.
 
 Use these pages as focused reference documents:
 

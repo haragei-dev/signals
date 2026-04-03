@@ -9,7 +9,7 @@ This page covers `memo()` and `MemoConstructor`.
 ## Canonical Example
 
 ```ts
-import { memo, signal } from 'mali-signali';
+import { memo, signal } from '@haragei/signals';
 
 const [count, setCount] = signal(2);
 const doubled = memo(() => count() * 2);

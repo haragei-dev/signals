@@ -1,0 +1,61 @@
+name: 'Bump Versions'
+
+on:
+    push:
+        branches:
+            - master
+            - main
+
+permissions:
+    contents: write
+    pull-requests: write
+
+jobs:
+    version:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+              with:
+                  fetch-depth: 0
+
+            - name: Setup PNPM
+              uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+              with:
+                  run_install: false
+
+            - name: Setup Node.js
+              uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
+              with:
+                  node-version-file: .node-version
+                  cache: pnpm
+
+            - name: Install dependencies
+              shell: bash
+              run: |
+                  pnpm install --frozen-lockfile
+
+            - name: Apply version changes
+              shell: bash
+              run: |
+                  pnpm version:packages
+
+            - name: Read workspace release version
+              id: release_version
+              shell: bash
+              run: |
+                  version="$(node -p "require('./packages/signals/package.json').version")"
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+
+            - name: Create or update version PR
+              uses: peter-evans/create-pull-request@v8
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  branch: version-packages
+                  delete-branch: true
+                  commit-message: Bump version to v${{ steps.release_version.outputs.version }}
+                  title: Bump version to v${{ steps.release_version.outputs.version }}
+                  body: |
+                      This PR was generated automatically from pending changesets.
+
+                      Release version: `v${{ steps.release_version.outputs.version }}`

@@ -238,9 +238,11 @@ describe('memo()', () => {
     });
 
     it('Propagates errors thrown by the compute function during creation.', () => {
-        expect(() => memo(() => {
-            throw new Error('boom');
-        })).toThrow('boom');
+        expect(() =>
+            memo(() => {
+                throw new Error('boom');
+            }),
+        ).toThrow('boom');
     });
 
     it('Propagates errors thrown by compute through the signal setter that triggers recomputation.', () => {
@@ -301,7 +303,9 @@ describe('memo()', () => {
             return value;
         });
 
-        const fx = vi.fn(() => { other(); });
+        const fx = vi.fn(() => {
+            other();
+        });
 
         effect(fx);
 

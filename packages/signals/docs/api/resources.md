@@ -9,7 +9,7 @@ This page covers `resource()`, `ResourceStatus`, `ResourceState`, `RunCause`, `R
 ## Canonical Example
 
 ```ts
-import { effect, resource, signal } from 'mali-signali';
+import { effect, resource, signal } from '@haragei/signals';
 
 type Wallet = { id: string; balance: number };
 

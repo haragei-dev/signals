@@ -15,24 +15,25 @@ import type { AsyncEffectErrorInfo, AsyncInvalidation, SignalReader } from './ty
 interface AsyncRunnerOptions {
     readonly signal?: AbortSignal | undefined;
     readonly queue?:
-        | { enqueue(item: AsyncInvalidation): void; dequeue(): AsyncInvalidation | undefined; clear(): void }
+        | {
+              enqueue(item: AsyncInvalidation): void;
+              dequeue(): AsyncInvalidation | undefined;
+              clear(): void;
+          }
         | undefined;
     readonly concurrency?: 'cancel' | 'concurrent' | 'queue';
-    readonly onError?: {
-        readonly mode?: 'report' | 'cancel' | 'throw';
-        readonly handler?: ((error: unknown, info: AsyncEffectErrorInfo) => void) | undefined;
-    } | undefined;
+    readonly onError?:
+        | {
+              readonly mode?: 'report' | 'cancel' | 'throw';
+              readonly handler?: ((error: unknown, info: AsyncEffectErrorInfo) => void) | undefined;
+          }
+        | undefined;
 }
 
 export function createAsyncRunner<Prepared, Result, Trigger = void>(
     state: StoreState,
     effect: EffectInstance,
-    {
-        signal,
-        queue,
-        concurrency = 'cancel',
-        onError,
-    }: AsyncRunnerOptions,
+    { signal, queue, concurrency = 'cancel', onError }: AsyncRunnerOptions,
     hooks: AsyncRunnerHooks<Prepared, Result, Trigger>,
 ): AsyncRunnerControl<Trigger> {
     if (queue && concurrency !== 'queue') {
@@ -43,7 +44,9 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     const preparedRuns = new Map<EffectRun, Prepared>();
     const retainedDependencyUnlinks = new Set<() => void>();
     const pendingQueue =
-        concurrency === 'queue' ? queue ?? new DefaultInvalidationQueue<AsyncInvalidation>() : undefined;
+        concurrency === 'queue'
+            ? (queue ?? new DefaultInvalidationQueue<AsyncInvalidation>())
+            : undefined;
     const errorMode = onError?.mode ?? 'report';
     const errorHandler = onError?.handler ?? hooks.defaultErrorHandler ?? (() => {});
 
@@ -372,10 +375,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             return;
         }
 
-        if (
-            fromDependency &&
-            state.runs.some((run) => run.effect === effect && run.tracking)
-        ) {
+        if (fromDependency && state.runs.some((run) => run.effect === effect && run.tracking)) {
             throw new Error('Cyclic dependency detected');
         }
 
@@ -447,9 +447,13 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     };
 
     if (signal) {
-        signal.addEventListener('abort', () => {
-            control.stop();
-        }, { once: true });
+        signal.addEventListener(
+            'abort',
+            () => {
+                control.stop();
+            },
+            { once: true },
+        );
     }
 
     state.activeEffects.add(effect);

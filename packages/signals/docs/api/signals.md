@@ -2,14 +2,14 @@
 
 ## Overview
 
-Signals are the fundamental mutable reactive values in `mali-signali`. A signal stores a value, exposes a reader and updater, and participates in dependency tracking when read inside a memo or effect.
+Signals are the fundamental mutable reactive values in `@haragei/signals`. A signal stores a value, exposes a reader and updater, and participates in dependency tracking when read inside a memo or effect.
 
 This page covers `signal()`, `Signal`, `SignalOptions`, `SignalReader`, `SignalUpdater`, and `SignalConstructor`.
 
 ## Canonical Example
 
 ```ts
-import { signal } from 'mali-signali';
+import { signal } from '@haragei/signals';
 
 const [count, setCount] = signal(0);
 

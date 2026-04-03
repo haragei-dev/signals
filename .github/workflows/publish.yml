@@ -1,0 +1,84 @@
+name: 'Publish Packages'
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+              with:
+                  fetch-depth: 0
+
+            - name: Setup PNPM
+              uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+              with:
+                  run_install: false
+
+            - name: Setup Node.js
+              uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
+              with:
+                  node-version-file: .node-version
+                  cache: pnpm
+
+            - name: Install dependencies
+              shell: bash
+              run: |
+                  pnpm install --frozen-lockfile
+
+            - name: Validate workspace
+              shell: bash
+              run: |
+                  pnpm prepublishOnly
+
+            - name: Pack public packages
+              shell: bash
+              run: |
+                  pnpm release:pack
+
+            - name: Generate release notes
+              shell: bash
+              run: |
+                  pnpm release:notes
+
+            - name: Publish to npm
+              shell: bash
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  pnpm release:publish:npm
+
+            - name: Publish to GitHub Packages
+              shell: bash
+              env:
+                  GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+              run: |
+                  pnpm release:publish:github
+
+            - name: Create and push release tag
+              shell: bash
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  version="$(node -p "require('./packages/signals/package.json').version")"
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git tag "v${version}"
+                  git push origin "v${version}"
+
+            - name: Create GitHub release
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  version="$(node -p "require('./packages/signals/package.json').version")"
+                  gh release create "v${version}" .release-artifacts/*.tgz \
+                    --title "v${version}" \
+                    --notes-file .release-artifacts/release-notes.md \
+                    --verify-tag

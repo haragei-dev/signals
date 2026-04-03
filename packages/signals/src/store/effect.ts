@@ -11,13 +11,7 @@ import type {
 export function createEffect(
     state: StoreState,
     execute: EffectFunction | AsyncEffectFunction,
-    {
-        isMemo = false,
-        signal,
-        queue,
-        concurrency = 'cancel',
-        onError,
-    }: InternalEffectOptions = {},
+    { isMemo = false, signal, queue, concurrency = 'cancel', onError }: InternalEffectOptions = {},
 ): () => void {
     if (signal?.aborted) {
         return () => {};

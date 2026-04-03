@@ -130,12 +130,10 @@ describe('resource()', () => {
 
     it('Detects cycles in direct resource dependencies.', () => {
         const [get, set] = signal(0);
-        const [read] = resource<number, Error>(
-            ((() => {
-                set(get() + 1);
-                return Promise.resolve(1);
-            }) as unknown) as (context: ResourceContext<number, Error>) => Promise<number>,
-        );
+        const [read] = resource<number, Error>((() => {
+            set(get() + 1);
+            return Promise.resolve(1);
+        }) as unknown as (context: ResourceContext<number, Error>) => Promise<number>);
 
         return flushPromises().then(() => {
             expect(read()).toMatchObject({
@@ -155,12 +153,10 @@ describe('resource()', () => {
             setA(b());
         });
 
-        const [read] = resource<number, Error>(
-            ((() => {
-                setB(a() + 1);
-                return Promise.resolve(1);
-            }) as unknown) as (context: ResourceContext<number, Error>) => Promise<number>,
-        );
+        const [read] = resource<number, Error>((() => {
+            setB(a() + 1);
+            return Promise.resolve(1);
+        }) as unknown as (context: ResourceContext<number, Error>) => Promise<number>);
 
         return flushPromises().then(() => {
             expect(read()).toMatchObject({
@@ -442,11 +438,9 @@ describe('resource()', () => {
     });
 
     it('Treats synchronously throwing loaders as rejected resource runs.', async () => {
-        const [read] = resource<number, Error>(
-            ((() => {
-                throw new Error('boom');
-            }) as unknown) as (context: ResourceContext<number, Error>) => Promise<number>,
-        );
+        const [read] = resource<number, Error>((() => {
+            throw new Error('boom');
+        }) as unknown as (context: ResourceContext<number, Error>) => Promise<number>);
 
         await flushPromises();
 
@@ -783,7 +777,9 @@ describe('resource()', () => {
     it('Stops the resource when the lifetime signal aborts and ignores later control calls.', async () => {
         const controller = new AbortController();
         const pending = deferred<number>();
-        const [read, controls] = resource(async () => pending.promise, { signal: controller.signal });
+        const [read, controls] = resource(async () => pending.promise, {
+            signal: controller.signal,
+        });
 
         controller.abort();
         controls.refresh();
