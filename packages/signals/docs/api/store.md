@@ -4,7 +4,10 @@
 
 `createStore()` creates an isolated reactive graph with its own signals, memos, effects, resources, and batching state.
 
+Store-local APIs follow the same immutable-read contract as the global helpers: reads from `store.signal()`, `store.memo()`, `store.untracked()`, `track()`, and `store.resource()` return `Immutable<T>` snapshots.
+
 Use stores when you want:
+
 - multiple independent reactive graphs in the same process
 - deterministic teardown of a graph through `unlink()`
 - library-local or request-local reactive state without touching the global store
@@ -20,7 +23,7 @@ const [count, setCount] = store.signal(0);
 const doubled = store.memo(() => count() * 2);
 
 const cancel = store.effect(() => {
-  console.log(doubled());
+    console.log(doubled());
 });
 
 setCount(1);
@@ -33,13 +36,13 @@ await store.unlink();
 
 ```ts
 interface Store {
-  readonly signal: SignalConstructor;
-  readonly untracked: UntrackedReader;
-  readonly effect: EffectConstructor;
-  readonly memo: MemoConstructor;
-  readonly resource: ResourceConstructor;
-  readonly batch: BatchFunction;
-  unlink(): Promise<void>;
+    readonly signal: SignalConstructor;
+    readonly untracked: UntrackedReader;
+    readonly effect: EffectConstructor;
+    readonly memo: MemoConstructor;
+    readonly resource: ResourceConstructor;
+    readonly batch: BatchFunction;
+    unlink(): Promise<void>;
 }
 
 declare function createStore(): Store;
@@ -48,6 +51,7 @@ declare function createStore(): Store;
 ## Full Behavior and Semantics
 
 The global functions:
+
 - `signal()`
 - `memo()`
 - `effect()`
@@ -65,7 +69,7 @@ const store = createStore();
 const [count, setCount] = store.signal(0);
 
 store.effect(() => {
-  console.log(count());
+    console.log(count());
 });
 ```
 
@@ -92,18 +96,20 @@ They behave the same way as the global APIs, but only within that store.
 const store = createStore();
 
 store.effect(() => {
-  console.log('reactive');
+    console.log('reactive');
 });
 
 await store.unlink();
 ```
 
 After `unlink()`:
+
 - existing effects and memos become inert
 - reads are still allowed
 - future updates no longer trigger the unlinked reactive graph
 
 This differs from canceling a single effect:
+
 - canceling an effect stops only that effect
 - `unlink()` tears down the whole store graph
 
@@ -121,10 +127,10 @@ Use it as a cleanup step when the store lifetime ends.
 
 ```ts
 function createRequestState() {
-  const store = createStore();
-  const session = store.signal(null as string | null);
+    const store = createStore();
+    const session = store.signal(null as string | null);
 
-  return { store, session };
+    return { store, session };
 }
 ```
 
@@ -135,9 +141,9 @@ const store = createStore();
 const userId = store.signal('');
 
 const [user] = store.resource(async ({ track, signal }) => {
-  const id = track(userId);
-  const response = await fetch(`/api/users/${id}`, { signal });
-  return response.json();
+    const id = track(userId);
+    const response = await fetch(`/api/users/${id}`, { signal });
+    return response.json();
 });
 ```
 

@@ -2,10 +2,12 @@
 
 This directory contains the full handwritten API reference for `@haragei/signals`.
 
+Across the API, reactive reads return `Immutable<T>` snapshots at the type level. This applies to signals, memos, `untracked()`, `track()`, and resource state reads.
+
 Use these pages as focused reference documents:
 
 - [`signals.md`](./signals.md)
-  Mutable reactive values, tuple ergonomics, and `SignalOptions`.
+  Reactive values, immutable reads, tuple ergonomics, and `SignalOptions`.
 - [`memos.md`](./memos.md)
   Derived state, memo invalidation, and equality behavior.
 - [`effects.md`](./effects.md)

@@ -9,6 +9,7 @@ import type {
     EffectConstructor,
     EffectFunction,
     EffectOptions,
+    Immutable,
     MemoConstructor,
     ResourceConstructor,
     ResourceContext,
@@ -29,11 +30,11 @@ class SignalStore implements Store {
         _activeEffects: new Set(),
     };
 
-    public signal = <T>(initialValue: T, options?: SignalOptions) => {
+    public signal = <T>(initialValue: T | Immutable<T>, options?: SignalOptions) => {
         return createSignal(this.#state, initialValue, options);
     };
 
-    public untracked: UntrackedReader = <T>(read: () => T): T => {
+    public untracked: UntrackedReader = <T>(read: () => Immutable<T>): Immutable<T> => {
         return readUntracked(this.#state, read);
     };
 
@@ -76,7 +77,7 @@ class SignalStore implements Store {
     };
 
     public resource: ResourceConstructor = <T, E = unknown>(
-        load: (context: ResourceContext<T, E>) => Promise<T>,
+        load: (context: ResourceContext<T, E>) => Promise<Immutable<T>>,
         options?: ResourceOptions,
     ) => {
         return createResource<T, E>(this.#state, load, options);

@@ -1,7 +1,7 @@
 import { structuralEqual } from '../equal';
 import type { EffectInstance, StoreState } from './internal';
 import { flushPendingEffects } from './flush';
-import type { Signal, SignalOptions, SignalReader, SignalUpdater } from './types';
+import type { Immutable, Signal, SignalOptions, SignalReader, SignalUpdater } from './types';
 
 const signalTuple = class SignalTuple<T> extends Array<SignalReader<T> | SignalUpdater<T>> {
     public readonly read: SignalReader<T>;
@@ -16,13 +16,13 @@ const signalTuple = class SignalTuple<T> extends Array<SignalReader<T> | SignalU
 
 export function createSignal<T>(
     state: StoreState,
-    initialValue: T,
+    initialValue: T | Immutable<T>,
     { equals = structuralEqual }: SignalOptions = {},
 ): Signal<T> {
     const dependencies = new Set<(typeof state._runs)[number]>();
-    let value = initialValue;
+    let value = initialValue as Immutable<T>;
 
-    const read = (): T => {
+    const read = (): Immutable<T> => {
         if (state._isTracking) {
             const run = state._runs.at(-1);
             if (run?._isTracking && !dependencies.has(run)) {
@@ -30,11 +30,16 @@ export function createSignal<T>(
                 run._onDependencyCleanup(() => dependencies.delete(run));
             }
         }
-        return value;
+
+        return value as Immutable<T>;
     };
 
-    const write = (newValue: T | ((prevValue: T) => T)): void => {
-        newValue = newValue instanceof Function ? newValue(value) : newValue;
+    const write: SignalUpdater<T> = (newValue) => {
+        newValue = (
+            typeof newValue === 'function'
+                ? (newValue as (prevValue: Immutable<T>) => T | Immutable<T>)(value)
+                : newValue
+        ) as Immutable<T>;
 
         if (equals(value, newValue)) {
             return;
@@ -58,7 +63,7 @@ export function createSignal<T>(
     return new signalTuple(read, write) as unknown as Signal<T>;
 }
 
-export function readUntracked<T>(state: StoreState, read: SignalReader<T>): T {
+export function readUntracked<T>(state: StoreState, read: SignalReader<T>): Immutable<T> {
     const wasTracking = state._isTracking;
 
     state._isTracking = false;

@@ -1,6 +1,7 @@
 import type {
     AsyncEffectConcurrency,
     AsyncEffectErrorOptions,
+    Immutable,
     InvalidationQueue,
     SignalReader,
 } from './types';
@@ -71,7 +72,7 @@ export interface StoreState {
 export interface AsyncRunnerContext {
     readonly _signal: AbortSignal;
     _onCleanup(cleanup: () => void): void;
-    _track<T>(read: SignalReader<T>): T;
+    _track<T>(read: SignalReader<T>): Immutable<T>;
 }
 
 export type AsyncRunCompletion<Result> =

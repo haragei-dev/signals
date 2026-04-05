@@ -3,6 +3,7 @@ import { deferred, flushPromises } from '../test/store-test-helpers';
 import {
     type AsyncInvalidation,
     type EffectConstructor,
+    type Immutable,
     type InvalidationQueue,
     type MemoConstructor,
     type ResourceConstructor,
@@ -39,7 +40,7 @@ describe('resource()', () => {
             refresh: () => void;
             abort: () => void;
             reset: () => void;
-            previous: ResourceState<number>;
+            previous: Immutable<ResourceState<number>>;
             cause: RunCause;
         }>();
     });

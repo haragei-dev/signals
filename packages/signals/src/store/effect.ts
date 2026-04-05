@@ -5,6 +5,7 @@ import type {
     AsyncEffectFunction,
     EffectContext,
     EffectFunction,
+    Immutable,
     SignalReader,
 } from './types';
 
@@ -61,7 +62,7 @@ export function createEffect(
             _execute(context): void | (() => void) | Promise<void> {
                 return execute({
                     cancel,
-                    track<T>(read: SignalReader<T>): T {
+                    track<T>(read: SignalReader<T>): Immutable<T> {
                         return context._track(read);
                     },
                     signal: context._signal,

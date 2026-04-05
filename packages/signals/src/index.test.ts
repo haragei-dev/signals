@@ -5,6 +5,7 @@ import type {
     AsyncEffectOptions,
     BatchFunction,
     EffectConstructor,
+    Immutable,
     MemoConstructor,
     ResourceConstructor,
     Signal,
@@ -68,7 +69,7 @@ describe('public API', () => {
             async ({ signal, onCleanup, track }) => {
                 void signal.aborted;
                 onCleanup(() => {});
-                expectTypeOf(track).toEqualTypeOf<<T>(read: () => T) => T>();
+                expectTypeOf(track).toEqualTypeOf<<T>(read: () => Immutable<T>) => Immutable<T>>();
                 void track(read);
                 await Promise.resolve();
             },

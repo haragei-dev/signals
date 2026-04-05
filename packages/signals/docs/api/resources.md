@@ -4,6 +4,8 @@
 
 Resources are asynchronous derived values. They wrap an async loader and expose a state reader plus imperative controls for refreshing, canceling, and resetting the resource.
 
+Like signals and memos, resource reads are immutable at the type level. This applies both to `read().value` and to `context.previous`.
+
 This page covers `resource()`, `ResourceStatus`, `ResourceState`, `RunCause`, `ResourceControls`, `ResourceContext`, `ResourceOptions`, and `ResourceConstructor`.
 
 ## Canonical Example
@@ -16,21 +18,21 @@ type Wallet = { id: string; balance: number };
 const walletId = signal('wallet-1');
 
 const [wallet] = resource<Wallet>(async ({ signal }) => {
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const id = walletId.read();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 
 effect(() => {
-  const state = wallet();
+    const state = wallet();
 
-  if (state.status === 'loading') {
-    console.log('Loading wallet...');
-  }
+    if (state.status === 'loading') {
+        console.log('Loading wallet...');
+    }
 
-  if (state.status === 'ready') {
-    console.log(state.value.balance);
-  }
+    if (state.status === 'ready') {
+        console.log(state.value.balance);
+    }
 });
 ```
 
@@ -40,38 +42,38 @@ effect(() => {
 type ResourceStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 type ResourceState<T, E = unknown> =
-  | { status: 'idle'; value: undefined; error: undefined; isStale: false }
-  | { status: 'loading'; value: undefined; error: undefined; isStale: false }
-  | { status: 'loading'; value: T; error: undefined; isStale: true }
-  | { status: 'ready'; value: T; error: undefined; isStale: false }
-  | { status: 'error'; value: T | undefined; error: E; isStale: boolean };
+    | { status: 'idle'; value: undefined; error: undefined; isStale: false }
+    | { status: 'loading'; value: undefined; error: undefined; isStale: false }
+    | { status: 'loading'; value: T; error: undefined; isStale: true }
+    | { status: 'ready'; value: T; error: undefined; isStale: false }
+    | { status: 'error'; value: T | undefined; error: E; isStale: boolean };
 
 type RunCause = 'init' | 'dependency' | 'refresh';
 
 interface ResourceControls {
-  refresh(): void;
-  abort(): void;
-  reset(): void;
+    refresh(): void;
+    abort(): void;
+    reset(): void;
 }
 
 interface ResourceContext<T, E = unknown> extends EffectContext, ResourceControls {
-  readonly previous: ResourceState<T, E>;
-  readonly cause: RunCause;
+    readonly previous: Immutable<ResourceState<T, E>>;
+    readonly cause: RunCause;
 }
 
 interface ResourceOptions extends AsyncEffectOptions {
-  readonly writes?: 'latest' | 'settled';
+    readonly writes?: 'latest' | 'settled';
 }
 
 declare function resource<T, E = unknown>(
-  load: (context: ResourceContext<T, E>) => Promise<T>,
-  options?: ResourceOptions,
-): readonly [read: SignalReader<ResourceState<T, E>>, controls: ResourceControls];
+    load: (context: ResourceContext<T, E>) => Promise<Immutable<T>>,
+    options?: ResourceOptions,
+): readonly [read: SignalReader<ResourceState<T, E>>, controls: Immutable<ResourceControls>];
 
 type ResourceConstructor = <T, E = unknown>(
-  load: (context: ResourceContext<T, E>) => Promise<T>,
-  options?: ResourceOptions,
-) => readonly [read: SignalReader<ResourceState<T, E>>, controls: ResourceControls];
+    load: (context: ResourceContext<T, E>) => Promise<Immutable<T>>,
+    options?: ResourceOptions,
+) => readonly [read: SignalReader<ResourceState<T, E>>, controls: Immutable<ResourceControls>];
 ```
 
 ## Full Behavior and Semantics
@@ -80,11 +82,12 @@ Resources start in `idle`, then immediately schedule an initial load and usually
 
 ```ts
 const [wallet] = resource(async () => {
-  return { id: 'w1', balance: 100 };
+    return { id: 'w1', balance: 100 };
 });
 ```
 
 The loader behaves like an async effect:
+
 - reads before the first `await` are tracked automatically
 - reads after the first `await` must use `track()`
 - `signal`, `onCleanup()`, `cancel()`, `refresh()`, `abort()`, and `reset()` are available
@@ -92,11 +95,14 @@ The loader behaves like an async effect:
 - `abort()` is resource-specific and aborts only the active run
 - dependency-triggered cycles are detected during tracked reads, including explicit `track()` reads
 
+Values observed through the return value, `context.previous`, and `track()` are immutable snapshots.
+If the resource value is an object or array, do not mutate it in place.
+
 ```ts
 const [wallet] = resource(async ({ signal }) => {
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const id = walletId.read();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 ```
 
@@ -156,48 +162,53 @@ With retained previous value:
 
 A string literal union representing the current lifecycle phase of a resource.
 
-| Value | Meaning |
-| --- | --- |
-| `'idle'` | The resource has not started loading, or has been reset. |
-| `'loading'` | A loader run is in progress. |
-| `'ready'` | The loader resolved successfully. |
-| `'error'` | The loader rejected or threw. |
+| Value       | Meaning                                                  |
+| ----------- | -------------------------------------------------------- |
+| `'idle'`    | The resource has not started loading, or has been reset. |
+| `'loading'` | A loader run is in progress.                             |
+| `'ready'`   | The loader resolved successfully.                        |
+| `'error'`   | The loader rejected or threw.                            |
 
 ### `ResourceContext`
 
 `ResourceContext` extends both `EffectContext` and `ResourceControls`, and also adds:
+
 - `previous`
 - `cause`
 
 When used inside a resource loader, `cancel()` stops the resource permanently:
+
 - the current run is canceled
 - tracked dependencies are removed
 - future dependency changes no longer start new runs
 - `refresh()`, `abort()`, `reset()`, and the external `controls.*` methods become no-ops afterward
 
 This is intentionally different from `abort()`:
+
 - both `cancel()` and `abort()` abort the current run's `signal`
 - `cancel()` matches async effect `cancel()` and permanently stops the reactive computation
 - `abort()` only aborts the active run and keeps the resource subscribed for future reruns
 
 #### `previous`
 
-The previous visible `ResourceState` for the run.
+The previous visible `ResourceState` for the run, typed as `Immutable<ResourceState<T, E>>`.
 
 ```ts
 const walletId = signal('wallet-1');
 
 resource(async ({ previous, signal }) => {
-  const id = walletId.read();
+    const id = walletId.read();
 
-  if (previous.status === 'ready') {
-    console.log('refreshing after:', previous.value.id);
-  }
+    if (previous.status === 'ready') {
+        console.log('refreshing after:', previous.value.id);
+    }
 
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 ```
+
+This is useful for stale-while-revalidate UIs, but remember that `previous.value` is read-only at the type level. If you want a modified value, derive a new object from it instead of mutating it.
 
 #### `cause`
 
@@ -206,22 +217,22 @@ Why the current run started.
 ```ts
 const walletId = signal('wallet-1');
 const [_, controls] = resource(async ({ cause, signal }) => {
-  console.log('run cause:', cause);
+    console.log('run cause:', cause);
 
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const id = walletId.read();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 
 walletId.update('wallet-2'); // dependency
 controls.refresh(); // refresh
 ```
 
-| Value | Meaning |
-| --- | --- |
-| `'init'` | The first run scheduled when the resource is created. |
+| Value          | Meaning                                                         |
+| -------------- | --------------------------------------------------------------- |
+| `'init'`       | The first run scheduled when the resource is created.           |
 | `'dependency'` | A rerun caused by a tracked signal, memo, or resource changing. |
-| `'refresh'` | A rerun started explicitly through `controls.refresh()`. |
+| `'refresh'`    | A rerun started explicitly through `controls.refresh()`.        |
 
 ### `ResourceControls`
 
@@ -232,16 +243,14 @@ Schedules a new run without clearing the current value.
 ```ts
 const walletId = signal('wallet-1');
 const [_, controls] = resource(async ({ signal }) => {
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const id = walletId.read();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 
-document
-  .querySelector('#refresh-wallet')!
-  .addEventListener('click', () => {
+document.querySelector('#refresh-wallet')!.addEventListener('click', () => {
     controls.refresh();
-  });
+});
 ```
 
 #### `abort()`
@@ -253,16 +262,14 @@ Tracked dependencies remain subscribed. A later dependency change can start a ne
 ```ts
 const walletId = signal('wallet-1');
 const [_, controls] = resource(async ({ signal }) => {
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const id = walletId.read();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 
-document
-  .querySelector('#cancel-wallet-request')!
-  .addEventListener('click', () => {
+document.querySelector('#cancel-wallet-request')!.addEventListener('click', () => {
     controls.abort();
-  });
+});
 ```
 
 #### `reset()`
@@ -272,22 +279,20 @@ Cancels active work, clears current value and error, and returns the resource to
 ```ts
 const walletId = signal<string | undefined>('wallet-1');
 const [_, controls] = resource(async ({ signal }) => {
-  const id = walletId.read();
+    const id = walletId.read();
 
-  if (!id) {
-    throw new Error('wallet id is required');
-  }
+    if (!id) {
+        throw new Error('wallet id is required');
+    }
 
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 
-document
-  .querySelector('#clear-wallet')!
-  .addEventListener('click', () => {
+document.querySelector('#clear-wallet')!.addEventListener('click', () => {
     walletId.update(undefined);
     controls.reset();
-  });
+});
 ```
 
 In general, avoid calling resource controls inside `batch()`. `refresh()` and `abort()` act immediately and usually become harder to reason about when mixed with batched dependency updates. The main exception is `reset()`, which can be reasonable inside a batch when you want the visible `idle` transition to land together with other synchronous state changes.
@@ -298,7 +303,7 @@ In general, avoid calling resource controls inside `batch()`. `refresh()` and `a
 
 ```ts
 interface ResourceOptions extends AsyncEffectOptions {
-  readonly writes?: 'latest' | 'settled';
+    readonly writes?: 'latest' | 'settled';
 }
 ```
 
@@ -309,14 +314,17 @@ Only the latest started run may commit its result.
 This is the safer default for overlapping async work such as `fetch()`:
 
 ```ts
-resource(async ({ signal }) => {
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
-}, {
-  concurrency: 'concurrent',
-  writes: 'latest',
-});
+resource(
+    async ({ signal }) => {
+        const id = walletId.read();
+        const response = await fetch(`/api/wallets/${id}`, { signal });
+        return response.json();
+    },
+    {
+        concurrency: 'concurrent',
+        writes: 'latest',
+    },
+);
 ```
 
 #### `writes: 'settled'`
@@ -324,14 +332,17 @@ resource(async ({ signal }) => {
 Allow runs to commit in settlement order, even if an older run finishes after a newer one.
 
 ```ts
-resource(async ({ signal }) => {
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
-}, {
-  concurrency: 'concurrent',
-  writes: 'settled',
-});
+resource(
+    async ({ signal }) => {
+        const id = walletId.read();
+        const response = await fetch(`/api/wallets/${id}`, { signal });
+        return response.json();
+    },
+    {
+        concurrency: 'concurrent',
+        writes: 'settled',
+    },
+);
 ```
 
 Use this only when completion-order overwrites are acceptable.
@@ -339,6 +350,7 @@ Use this only when completion-order overwrites are acceptable.
 ### Async options
 
 `resource()` also accepts:
+
 - `signal`
 - `concurrency`
 - `queue`
@@ -353,6 +365,7 @@ These behave the same way as in [`effects.md`](./effects.md), except resource co
 - `controls.abort()` does not reset the state to `idle`.
 - `reset()` clears the visible state, but the resource remains usable for future dependency-driven loads or manual refreshes.
 - Reads after the first `await` are untracked unless wrapped in `track()`.
+- Resource state values are immutable at the type level. Mutating `read().value` or `previous.value` would not trigger updates and is intentionally discouraged by the API.
 - Cycles created by tracked dependency invalidations are detected and surface as `Cyclic dependency detected` through the normal resource error path.
 - If you use `concurrency: 'concurrent'`, stale writes are prevented only when `writes` is `'latest'`.
 - `reset()` returns the resource to `idle`; the next run, if any, will usually be caused by a dependency change or a manual `refresh()`.
@@ -364,11 +377,11 @@ These behave the same way as in [`effects.md`](./effects.md), except resource co
 
 ```ts
 effect(() => {
-  const state = wallet();
+    const state = wallet();
 
-  if (state.status === 'loading' && state.isStale) {
-    console.log('Refreshing existing wallet value...');
-  }
+    if (state.status === 'loading' && state.isStale) {
+        console.log('Refreshing existing wallet value...');
+    }
 });
 ```
 
@@ -376,11 +389,11 @@ effect(() => {
 
 ```ts
 effect(() => {
-  const state = wallet();
+    const state = wallet();
 
-  if (state.status === 'error' && state.value) {
-    console.log('Showing stale value while surfacing the error');
-  }
+    if (state.status === 'error' && state.value) {
+        console.log('Showing stale value while surfacing the error');
+    }
 });
 ```
 
@@ -388,24 +401,22 @@ effect(() => {
 
 ```ts
 const [wallet, { refresh }] = resource(async ({ signal }) => {
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const id = walletId.read();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 
-document
-  .querySelector('#refresh-wallet')!
-  .addEventListener('click', () => {
+document.querySelector('#refresh-wallet')!.addEventListener('click', () => {
     refresh();
-  });
+});
 ```
 
 ### Post-`await` tracking inside a resource
 
 ```ts
 const [value] = resource(async ({ track }) => {
-  await Promise.resolve();
-  return track(selectedValue);
+    await Promise.resolve();
+    return track(selectedValue);
 });
 ```
 
@@ -418,33 +429,29 @@ type Owner = { id: string; name: string };
 const walletId = signal('wallet-1');
 
 const [wallet] = resource<Wallet>(async ({ signal }) => {
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const id = walletId.read();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 
 const [owner] = resource<Owner | undefined>(async ({ signal }) => {
-  const walletState = wallet();
+    const walletState = wallet();
 
-  if (walletState.status !== 'ready') {
-    return undefined;
-  }
+    if (walletState.status !== 'ready') {
+        return undefined;
+    }
 
-  const response = await fetch(`/api/users/${walletState.value.ownerId}`, { signal });
-  return response.json();
+    const response = await fetch(`/api/users/${walletState.value.ownerId}`, { signal });
+    return response.json();
 });
 
 effect(() => {
-  const walletState = wallet();
-  const ownerState = owner();
+    const walletState = wallet();
+    const ownerState = owner();
 
-  if (
-    walletState.status === 'ready' &&
-    ownerState.status === 'ready' &&
-    ownerState.value
-  ) {
-    console.log(`${ownerState.value.name} owns wallet ${walletState.value.id}`);
-  }
+    if (walletState.status === 'ready' && ownerState.status === 'ready' && ownerState.value) {
+        console.log(`${ownerState.value.name} owns wallet ${walletState.value.id}`);
+    }
 });
 ```
 

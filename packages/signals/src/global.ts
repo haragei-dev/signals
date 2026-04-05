@@ -3,6 +3,7 @@ import {
     type AsyncEffectOptions,
     type EffectFunction,
     type EffectOptions,
+    type Immutable,
     type ResourceConstructor,
     type Signal,
     type SignalOptions,
@@ -29,7 +30,7 @@ const globalStore = createStore();
  * @param options Optional parameters for customizing the behavior.
  * @returns A `[read, update]` tuple of accessor functions.
  */
-export function signal<T>(initialValue: T, options?: SignalOptions): Signal<T> {
+export function signal<T>(initialValue: T | Immutable<T>, options?: SignalOptions): Signal<T> {
     return globalStore.signal(initialValue, options);
 }
 
@@ -38,7 +39,7 @@ export function signal<T>(initialValue: T, options?: SignalOptions): Signal<T> {
  *
  * @param read The signal reader function.
  */
-export function untracked<T>(read: SignalReader<T>): T {
+export function untracked<T>(read: SignalReader<T>): Immutable<T> {
     return globalStore.untracked(read);
 }
 

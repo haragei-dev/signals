@@ -237,6 +237,28 @@ describe('memo()', () => {
         expect(memoized()).toBe(84);
     });
 
+    it('Stops recomputing when its lifetime signal aborts.', () => {
+        const [get, set] = signal(1);
+        const controller = new AbortController();
+        const compute = vi.fn(() => get() * 2);
+
+        const memoized = memo(compute, { signal: controller.signal });
+
+        expect(memoized()).toBe(2);
+        expect(compute).toHaveBeenCalledTimes(1);
+
+        set(2);
+
+        expect(memoized()).toBe(4);
+        expect(compute).toHaveBeenCalledTimes(2);
+
+        controller.abort();
+        set(3);
+
+        expect(memoized()).toBe(4);
+        expect(compute).toHaveBeenCalledTimes(2);
+    });
+
     it('Propagates errors thrown by the compute function during creation.', () => {
         expect(() =>
             memo(() => {

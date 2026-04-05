@@ -9,6 +9,7 @@ import {
     type EffectConstructor,
     type EffectContext,
     type EffectFunction,
+    type Immutable,
     type InvalidationQueue,
     type MemoConstructor,
     type SignalConstructor,
@@ -49,9 +50,9 @@ describe('effect()', () => {
     });
 
     it('Exposes context.track() in the public effect types.', () => {
-        expectTypeOf<EffectContext>().toExtend<{
-            track: <T>(read: SignalReader<T>) => T;
-        }>();
+        expectTypeOf<EffectContext['track']>().toEqualTypeOf<
+            <T>(read: SignalReader<T>) => Immutable<T>
+        >();
     });
 
     it('Allows async effect options in the public types.', () => {

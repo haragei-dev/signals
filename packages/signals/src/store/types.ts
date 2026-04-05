@@ -101,12 +101,14 @@ export interface AsyncEffectOptions extends EffectOptions {
 /**
  * A function that reads and returns a signal value.
  */
-export type SignalReader<T> = () => T;
+export type SignalReader<T> = () => Immutable<T>;
 
 /**
  * A function that updates a signal value.
  */
-export type SignalUpdater<T> = (value: T | ((prevValue: T) => T)) => void;
+export type SignalUpdater<T> = (
+    value: T | Immutable<T> | ((prevValue: Immutable<T>) => T | Immutable<T>),
+) => void;
 
 /**
  * A signal is a reactive unit of state that can be read and updated.
@@ -135,12 +137,15 @@ export type Signal<T> = readonly [get: SignalReader<T>, set: SignalUpdater<T>] &
  * @param options Optional parameters for customizing the behavior.
  * @returns A `[read, update]` tuple of accessor functions.
  */
-export type SignalConstructor = <T>(initialValue: T, options?: SignalOptions) => Signal<T>;
+export type SignalConstructor = <T>(
+    initialValue: T | Immutable<T>,
+    options?: SignalOptions,
+) => Signal<T>;
 
 /**
  * A function that reads the value of a signal without tracking it.
  */
-export type UntrackedReader = <T>(read: SignalReader<T>) => T;
+export type UntrackedReader = <T>(read: SignalReader<T>) => Immutable<T>;
 
 /**
  * The context object passed to the effect function.
@@ -157,7 +162,7 @@ export interface EffectContext {
      * This is useful in async effects after the first `await`, where reads
      * are otherwise intentionally untracked.
      */
-    track<T>(read: SignalReader<T>): T;
+    track<T>(read: SignalReader<T>): Immutable<T>;
 
     /**
      * Abort signal for the current effect run.
@@ -242,7 +247,7 @@ export interface ResourceControls {
 }
 
 export interface ResourceContext<T, E = unknown> extends EffectContext, ResourceControls {
-    readonly previous: ResourceState<T, E>;
+    readonly previous: Immutable<ResourceState<T, E>>;
     readonly cause: RunCause;
 }
 
@@ -251,9 +256,9 @@ export interface ResourceOptions extends AsyncEffectOptions {
 }
 
 export type ResourceConstructor = <T, E = unknown>(
-    load: (context: ResourceContext<T, E>) => Promise<T>,
+    load: (context: ResourceContext<T, E>) => Promise<Immutable<T>>,
     options?: ResourceOptions,
-) => readonly [read: SignalReader<ResourceState<T, E>>, controls: ResourceControls];
+) => readonly [read: SignalReader<ResourceState<T, E>>, controls: Immutable<ResourceControls>];
 
 /**
  * Executes a batch of updates.
@@ -356,3 +361,43 @@ export interface Store {
      */
     unlink(): Promise<void>;
 }
+
+/**
+ * A helper type for recursively making an object and all its nested properties deeply immutable.
+ */
+export type Immutable<T> = T extends
+    | string
+    | number
+    | boolean
+    | bigint
+    | symbol
+    | undefined
+    | null
+    | Date
+    | RegExp
+    ? T
+    : T extends (...args: infer Args) => infer Return
+      ? (...args: Args) => Return
+      : T extends abstract new (...args: infer Args) => infer Instance
+        ? abstract new (...args: Args) => Instance
+        : T extends Map<infer K, infer V>
+          ? ReadonlyMap<Immutable<K>, Immutable<V>>
+          : T extends ReadonlyMap<infer K, infer V>
+            ? ReadonlyMap<Immutable<K>, Immutable<V>>
+            : T extends WeakMap<infer K, infer V>
+              ? WeakMap<Immutable<K>, Immutable<V>>
+              : T extends Set<infer V>
+                ? ReadonlySet<Immutable<V>>
+                : T extends ReadonlySet<infer V>
+                  ? ReadonlySet<Immutable<V>>
+                  : T extends WeakSet<infer V>
+                    ? WeakSet<Immutable<V>>
+                    : T extends Promise<infer V>
+                      ? Promise<Immutable<V>>
+                      : T extends readonly unknown[]
+                        ? number extends T['length']
+                            ? ReadonlyArray<Immutable<T[number]>>
+                            : { readonly [K in keyof T]: Immutable<T[K]> }
+                        : T extends object
+                          ? { readonly [K in keyof T]: Immutable<T[K]> }
+                          : unknown;

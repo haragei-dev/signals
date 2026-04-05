@@ -1,10 +1,10 @@
 import type {
+    AsyncRunCompletion,
     AsyncRunnerAbortHelpers,
     AsyncRunnerCommitInfo,
     AsyncRunnerContext,
     AsyncRunnerControl,
     AsyncRunnerHooks,
-    AsyncRunCompletion,
     EffectInstance,
     EffectRun,
     StoreState,
@@ -21,7 +21,7 @@ import {
     SETTLED,
 } from './internal';
 import { DefaultInvalidationQueue } from './queue';
-import type { AsyncEffectErrorInfo, AsyncInvalidation, SignalReader } from './types';
+import type { AsyncEffectErrorInfo, AsyncInvalidation, Immutable, SignalReader } from './types';
 
 const CONCURRENCY_CANCEL = 0;
 const CONCURRENCY_CONCURRENT = 1;
@@ -221,12 +221,12 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         run._cleanups.add(cleanup);
     };
 
-    const track = <T>(run: EffectRun, read: SignalReader<T>): T => {
+    const track = <T>(run: EffectRun, read: SignalReader<T>): Immutable<T> => {
         if (
-            !run._isActive ||
-            run._state === CANCELED ||
-            run._areDependenciesComplete ||
-            run._isCleanupComplete
+            !run._isActive
+            || run._state === CANCELED
+            || run._areDependenciesComplete
+            || run._isCleanupComplete
         ) {
             return read();
         }
@@ -363,7 +363,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
                     _onCleanup(cleanup) {
                         registerCleanup(run, cleanup);
                     },
-                    _track<T>(read: SignalReader<T>): T {
+                    _track<T>(read: SignalReader<T>): Immutable<T> {
                         return track(run, read);
                     },
                 } satisfies AsyncRunnerContext,
@@ -417,8 +417,8 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         }
 
         if (
-            fromDependency &&
-            state._runs.some((run) => run._effect === effect && run._isTracking)
+            fromDependency
+            && state._runs.some((run) => run._effect === effect && run._isTracking)
         ) {
             throw new Error('Cyclic dependency detected');
         }
@@ -507,9 +507,9 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
 
 function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
     return (
-        value !== null &&
-        (typeof value === 'object' || typeof value === 'function') &&
-        'then' in value &&
-        typeof value.then === 'function'
+        value !== null
+        && (typeof value === 'object' || typeof value === 'function')
+        && 'then' in value
+        && typeof value.then === 'function'
     );
 }

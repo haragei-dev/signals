@@ -3,6 +3,7 @@ import { ABORT_CONTROL, CANCELED, FULFILLED, REJECTED } from './internal';
 import type { EffectInstance, StoreState } from './internal';
 import { createSignal } from './signal';
 import type {
+    Immutable,
     ResourceContext,
     ResourceControls,
     ResourceOptions,
@@ -12,15 +13,15 @@ import type {
 } from './types';
 
 type ResourceCompletion<T> =
-    | { _status: typeof FULFILLED; _value: T }
+    | { _status: typeof FULFILLED; _value: Immutable<T> }
     | { _status: typeof REJECTED; _error: unknown };
 
 interface ResourcePrepared<T, E = unknown> {
-    readonly _previous: ResourceState<T, E>;
+    readonly _previous: Immutable<ResourceState<T, E>>;
     readonly _cause: RunCause;
 }
 
-function createIdleState<T, E = unknown>(): ResourceState<T, E> {
+function createIdleState<T, E = unknown>(): Immutable<ResourceState<T, E>> {
     return {
         status: 'idle',
         value: undefined,
@@ -29,11 +30,13 @@ function createIdleState<T, E = unknown>(): ResourceState<T, E> {
     };
 }
 
-function getLoadingState<T, E = unknown>(previous: ResourceState<T, E>): ResourceState<T, E> {
+function getLoadingState<T, E = unknown>(
+    previous: Immutable<ResourceState<T, E>>,
+): Immutable<ResourceState<T, E>> {
     if (previous.value !== undefined) {
         return {
             status: 'loading',
-            value: previous.value,
+            value: previous.value as Immutable<T>,
             error: undefined,
             isStale: true,
         };
@@ -49,7 +52,7 @@ function getLoadingState<T, E = unknown>(previous: ResourceState<T, E>): Resourc
 
 export function createResource<T, E = unknown>(
     state: StoreState,
-    load: (context: ResourceContext<T, E>) => Promise<T>,
+    load: (context: ResourceContext<T, E>) => Promise<Immutable<T>>,
     { signal, queue, concurrency = 'cancel', onError, writes = 'latest' }: ResourceOptions = {},
 ): readonly [SignalReader<ResourceState<T, E>>, ResourceControls] {
     if (signal?.aborted) {
@@ -67,7 +70,7 @@ export function createResource<T, E = unknown>(
     let currentState = read();
     let stopped = false;
 
-    const setState = (nextState: ResourceState<T, E>): void => {
+    const setState = (nextState: Immutable<ResourceState<T, E>>): void => {
         currentState = nextState;
         write(nextState);
     };
@@ -82,7 +85,7 @@ export function createResource<T, E = unknown>(
         },
     };
 
-    const control = createAsyncRunner<ResourcePrepared<T, E>, T, RunCause>(
+    const control = createAsyncRunner<ResourcePrepared<T, E>, Immutable<T>, RunCause>(
         state,
         fx,
         {
@@ -93,7 +96,7 @@ export function createResource<T, E = unknown>(
         },
         {
             _prepare(trigger): ResourcePrepared<T, E> {
-                const prepared = {
+                const prepared: ResourcePrepared<T, E> = {
                     _previous: currentState,
                     _cause: trigger ?? 'dependency',
                 };
@@ -101,7 +104,7 @@ export function createResource<T, E = unknown>(
                 setState(getLoadingState(prepared._previous));
                 return prepared;
             },
-            _execute(context, prepared): Promise<T> {
+            _execute(context, prepared): Promise<Immutable<T>> {
                 try {
                     return Promise.resolve(
                         load({
@@ -117,7 +120,7 @@ export function createResource<T, E = unknown>(
                             reset() {
                                 controls.reset();
                             },
-                            track<U>(reader: SignalReader<U>): U {
+                            track<U>(reader: SignalReader<U>): Immutable<U> {
                                 return context._track(reader);
                             },
                             signal: context._signal,
@@ -148,7 +151,7 @@ export function createResource<T, E = unknown>(
                 setState({
                     status: 'error',
                     value: prepared._previous.value,
-                    error: result._error as E,
+                    error: result._error as Immutable<E>,
                     isStale: prepared._previous.value !== undefined,
                 });
             },

@@ -4,6 +4,8 @@
 
 Memos are derived read-only signals. They compute a value from other reactive values and update automatically when their dependencies change.
 
+Like signals, memo reads are typed as immutable snapshots. If a memo returns an object or array, downstream consumers must treat that value as read-only and derive a new value instead of mutating it in place.
+
 This page covers `memo()` and `MemoConstructor`.
 
 ## Canonical Example
@@ -25,23 +27,26 @@ console.log(doubled()); // 6
 
 ```ts
 type MemoConstructor = <T>(
-  compute: () => T,
-  options?: SignalOptions & EffectOptions,
+    compute: () => T,
+    options?: SignalOptions & EffectOptions,
 ) => SignalReader<T>;
 
 declare function memo<T>(
-  compute: () => T,
-  options?: SignalOptions & EffectOptions,
+    compute: () => T,
+    options?: SignalOptions & EffectOptions,
 ): SignalReader<T>;
 ```
 
 ## Full Behavior and Semantics
 
 A memo:
+
 - is read-only
 - tracks the signal, memo, and resource readers it uses while computing
 - re-computes when those dependencies change
 - exposes its current value through a normal `SignalReader<T>`
+
+Because `SignalReader<T>` returns `Immutable<T>`, object and array results from a memo are also immutable on the read side.
 
 Memo compute functions must be idempotent. Treat them as pure derived computations, not as places for side effects.
 
@@ -57,6 +62,7 @@ Memos behave like derived signals, so reading a memo inside another memo or effe
 ## Options and Related Types
 
 `memo()` accepts:
+
 - `SignalOptions`, which control equality of the memo output
 - `EffectOptions`, which allow cancellation through an `AbortSignal`
 
@@ -65,12 +71,15 @@ Memos behave like derived signals, so reading a memo inside another memo or effe
 Memo output is compared using the same `equals` behavior as signals.
 
 ```ts
-const settings = memo(() => ({
-  theme: theme(),
-  locale: locale(),
-}), {
-  equals: Object.is,
-});
+const settings = memo(
+    () => ({
+        theme: theme(),
+        locale: locale(),
+    }),
+    {
+        equals: Object.is,
+    },
+);
 ```
 
 ### AbortSignal support
@@ -79,7 +88,7 @@ const settings = memo(() => ({
 const controller = new AbortController();
 
 const doubled = memo(() => count() * 2, {
-  signal: controller.signal,
+    signal: controller.signal,
 });
 
 controller.abort();
@@ -109,7 +118,7 @@ const fullName = memo(() => `${firstName()} ${lastName()}`);
 
 ```ts
 effect(() => {
-  console.log('full name:', fullName());
+    console.log('full name:', fullName());
 });
 ```
 
@@ -117,8 +126,20 @@ effect(() => {
 
 ```ts
 const coords = memo(() => ({ x: x(), y: y() }), {
-  equals: Object.is,
+    equals: Object.is,
 });
+```
+
+### Memo returning an object
+
+```ts
+const profile = memo(() => ({
+    id: userId(),
+    label: `${firstName()} ${lastName()}`,
+}));
+
+const current = profile();
+// current.label = 'override'; // Type error
 ```
 
 ## Related Topics

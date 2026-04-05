@@ -3,6 +3,3 @@ pnpm-lock.yaml
 
 # Build outputs
 dist/*
-
-# Prettier reformats code blocks inside Markdown, which affects rendered output
-*.md

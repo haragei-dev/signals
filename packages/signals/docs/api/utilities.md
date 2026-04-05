@@ -3,6 +3,7 @@
 ## Overview
 
 This page covers the small shared runtime utilities that are not a feature family by themselves:
+
 - `batch()`
 - `untracked()`
 - `InvalidationQueue`
@@ -20,43 +21,42 @@ const [a, setA] = signal(1);
 const [b, setB] = signal(2);
 
 effect(() => {
-  console.log('tracked:', b(), 'untracked:', untracked(a));
+    console.log('tracked:', b(), 'untracked:', untracked(a));
 });
 
 batch(() => {
-  setA(3);
-  setB(4);
+    setA(3);
+    setB(4);
 });
 ```
 
 ## Public API Summary
 
 ```ts
-type UntrackedReader = <T>(read: SignalReader<T>) => T;
+type UntrackedReader = <T>(read: SignalReader<T>) => Immutable<T>;
 
 type BatchFunction = (execute: () => void) => void;
 
 interface AsyncInvalidation {
-  readonly generation: number;
+    readonly generation: number;
 }
 
 interface InvalidationQueue<T = AsyncInvalidation> {
-  enqueue(item: T): void;
-  dequeue(): T | undefined;
-  clear(): void;
-  readonly size: number;
+    enqueue(item: T): void;
+    dequeue(): T | undefined;
+    clear(): void;
+    readonly size: number;
 }
 
-declare class DefaultInvalidationQueue<T = AsyncInvalidation>
-  implements InvalidationQueue<T> {
-  enqueue(item: T): void;
-  dequeue(): T | undefined;
-  clear(): void;
-  get size(): number;
+declare class DefaultInvalidationQueue<T = AsyncInvalidation> implements InvalidationQueue<T> {
+    enqueue(item: T): void;
+    dequeue(): T | undefined;
+    clear(): void;
+    get size(): number;
 }
 
 declare function batch(execute: () => void): void;
-declare function untracked<T>(read: SignalReader<T>): T;
+declare function untracked<T>(read: SignalReader<T>): Immutable<T>;
 ```
 
 ## Full Behavior and Semantics
@@ -67,12 +67,14 @@ Reads a signal, memo, or resource without subscribing the current memo or effect
 
 ```ts
 effect(() => {
-  console.log('tracked b:', b());
-  console.log('untracked a:', untracked(a));
+    console.log('tracked b:', b());
+    console.log('untracked a:', untracked(a));
 });
 ```
 
 This is useful when you need the current value for computation or logging, but do not want future updates of that value to retrigger the current reactive computation.
+
+`untracked()` does not make the value mutable. It only suppresses dependency tracking; the returned value is still typed as `Immutable<T>`.
 
 ### `batch(execute)`
 
@@ -80,12 +82,13 @@ Batches multiple updates so dependents flush after the batch completes.
 
 ```ts
 batch(() => {
-  setA(1);
-  setB(2);
+    setA(1);
+    setB(2);
 });
 ```
 
 Within the batch:
+
 - signals may update multiple times
 - effects and memos do not flush after every individual write
 - dependents observe the final batched state once the batch ends
@@ -98,7 +101,7 @@ Queue items used internally and by custom invalidation queues for async effects 
 
 ```ts
 interface AsyncInvalidation {
-  readonly generation: number;
+    readonly generation: number;
 }
 ```
 
@@ -110,10 +113,10 @@ Custom queue contract for `concurrency: 'queue'` in async effects and resources.
 
 ```ts
 interface InvalidationQueue<T = AsyncInvalidation> {
-  enqueue(item: T): void;
-  dequeue(): T | undefined;
-  clear(): void;
-  readonly size: number;
+    enqueue(item: T): void;
+    dequeue(): T | undefined;
+    clear(): void;
+    readonly size: number;
 }
 ```
 
@@ -128,6 +131,7 @@ const queue = new DefaultInvalidationQueue();
 ```
 
 It implements:
+
 - `enqueue(item)`
 - `dequeue()`
 - `clear()`
@@ -140,17 +144,21 @@ import { DefaultInvalidationQueue, effect } from '@haragei/signals';
 
 const queue = new DefaultInvalidationQueue();
 
-effect(async () => {
-  await doWork(value());
-}, {
-  concurrency: 'queue',
-  queue,
-});
+effect(
+    async () => {
+        await doWork(value());
+    },
+    {
+        concurrency: 'queue',
+        queue,
+    },
+);
 ```
 
 ## Edge Cases and Gotchas
 
 - `untracked()` affects only the wrapped read, not the rest of the surrounding effect or memo.
+- `untracked()` preserves immutable-read semantics. It skips dependency tracking, but it does not opt you back into mutating read values in place.
 - `batch()` batches flushes, not application logic. Reads inside the batch still see the latest written values.
 - Queue primitives matter only when `concurrency` is `'queue'`.
 - `DefaultInvalidationQueue` is FIFO and intentionally minimal; custom queue policies can be implemented by supplying your own `InvalidationQueue`.
@@ -161,7 +169,7 @@ effect(async () => {
 
 ```ts
 effect(() => {
-  setTotal(untracked(previousTotal) + currentDelta());
+    setTotal(untracked(previousTotal) + currentDelta());
 });
 ```
 
@@ -169,12 +177,12 @@ effect(() => {
 
 ```ts
 batch(() => {
-  setA(1);
+    setA(1);
 
-  batch(() => {
-    setB(2);
-    setC(3);
-  });
+    batch(() => {
+        setB(2);
+        setC(3);
+    });
 });
 ```
 
@@ -182,23 +190,23 @@ batch(() => {
 
 ```ts
 class LatestOnlyQueue<T> implements InvalidationQueue<T> {
-  #items: T[] = [];
+    #items: T[] = [];
 
-  enqueue(item: T): void {
-    this.#items = [item];
-  }
+    enqueue(item: T): void {
+        this.#items = [item];
+    }
 
-  dequeue(): T | undefined {
-    return this.#items.shift();
-  }
+    dequeue(): T | undefined {
+        return this.#items.shift();
+    }
 
-  clear(): void {
-    this.#items.length = 0;
-  }
+    clear(): void {
+        this.#items.length = 0;
+    }
 
-  get size(): number {
-    return this.#items.length;
-  }
+    get size(): number {
+        return this.#items.length;
+    }
 }
 ```
 
