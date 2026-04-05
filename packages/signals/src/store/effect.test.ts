@@ -1,5 +1,9 @@
 import { afterAll, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { deferred, flushPromises } from '../test/store-test-helpers';
+import { createAction } from './action';
+import { createEffect } from './effect';
+import { createSignal } from './signal';
+import { createTestState } from '../test/store-test-helpers';
 import {
     type AsyncEffectFunction,
     type AsyncEffectOptions,
@@ -953,5 +957,51 @@ describe('effect()', () => {
     it('Rejects async-only options for sync effects in the public types.', () => {
         // @ts-expect-error Sync effects cannot use async-only concurrency options.
         effect(() => {}, { concurrency: 'cancel' });
+    });
+});
+
+describe('createEffect() internals', () => {
+    it('Returns early when an internal update is attempted after cancelation.', () => {
+        const state = createTestState();
+        const [read] = createSignal(state, 0);
+        const cancel = createEffect(state, () => {
+            read();
+        });
+        const [fx] = Array.from(state._activeEffects);
+
+        cancel();
+        fx?._update();
+
+        expect(state._pendingEffects.size).toBe(0);
+    });
+
+    it('Marks a running sync effect as canceled when the runner stops during execution.', () => {
+        const state = createTestState();
+        const [read] = createSignal(state, 0);
+
+        createEffect(state, ({ cancel }) => {
+            read();
+            cancel();
+        });
+
+        expect(state._activeEffects.size).toBe(0);
+        expect(state._pendingEffects.size).toBe(0);
+    });
+
+    it('Keeps internal action effect updates inert.', () => {
+        const state = createTestState();
+        const run = vi.fn(async () => 1);
+        const [read] = createAction(state, run);
+        const [fx] = Array.from(state._activeEffects);
+
+        fx?._update();
+
+        expect(run).not.toHaveBeenCalled();
+        expect(read()).toEqual({
+            status: 'idle',
+            value: undefined,
+            error: undefined,
+            isStale: false,
+        });
     });
 });

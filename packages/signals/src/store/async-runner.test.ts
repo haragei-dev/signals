@@ -1,7 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { createAction } from './action';
+import { describe, expect, it } from 'vitest';
 import { createAsyncRunner } from './async-runner';
-import { createEffect } from './effect';
 import { ABORT_CONTROL, CANCELED, FULFILLED } from './internal';
 import type { EffectInstance } from './internal';
 import { createSignal } from './signal';
@@ -269,51 +267,5 @@ describe('createAsyncRunner()', () => {
         await flushPromises();
 
         expect(state._activeEffects.size).toBe(1);
-    });
-});
-
-describe('createEffect() internals', () => {
-    it('Returns early when an internal update is attempted after cancelation.', () => {
-        const state = createTestState();
-        const [read] = createSignal(state, 0);
-        const cancel = createEffect(state, () => {
-            read();
-        });
-        const [fx] = Array.from(state._activeEffects);
-
-        cancel();
-        fx?._update();
-
-        expect(state._pendingEffects.size).toBe(0);
-    });
-
-    it('Marks a running sync effect as canceled when the runner stops during execution.', () => {
-        const state = createTestState();
-        const [read] = createSignal(state, 0);
-
-        createEffect(state, ({ cancel }) => {
-            read();
-            cancel();
-        });
-
-        expect(state._activeEffects.size).toBe(0);
-        expect(state._pendingEffects.size).toBe(0);
-    });
-
-    it('Keeps internal action effect updates inert.', () => {
-        const state = createTestState();
-        const run = vi.fn(async () => 1);
-        const [read] = createAction(state, run);
-        const [fx] = Array.from(state._activeEffects);
-
-        fx?._update();
-
-        expect(run).not.toHaveBeenCalled();
-        expect(read()).toEqual({
-            status: 'idle',
-            value: undefined,
-            error: undefined,
-            isStale: false,
-        });
     });
 });

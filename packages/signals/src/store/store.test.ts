@@ -1,18 +1,13 @@
-import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { equalFunc } from '../equal';
 import { deferred, flushPromises } from '../test/store-test-helpers';
 import {
-    type ActionConstructor,
-    type ActionContext,
     type BatchFunction,
     type EffectConstructor,
     type MemoConstructor,
     type SignalConstructor,
-    type SignalReader,
-    type SignalUpdater,
     type UntrackedReader,
 } from './types';
-import { DefaultInvalidationQueue } from './queue';
 import { createStore } from './store';
 
 describe('createStore()', () => {
@@ -44,145 +39,6 @@ describe('createStore()', () => {
         set(1);
 
         expect(value).toBe(0);
-    });
-});
-
-describe('action()', () => {
-    let action: ActionConstructor;
-
-    beforeEach(() => {
-        const store = createStore();
-        action = store.action;
-    });
-
-    it('Exposes submit, abort, and reset controls.', async () => {
-        const [read, controls] = action(
-            async (_context: ActionContext<number>, value: number) => value * 2,
-        );
-
-        expect(read()).toEqual({
-            status: 'idle',
-            value: undefined,
-            error: undefined,
-            isStale: false,
-        });
-        expect(controls.submit).toBeInstanceOf(Function);
-        expect(controls.abort).toBeInstanceOf(Function);
-        expect(controls.reset).toBeInstanceOf(Function);
-
-        await expect(controls.submit(3)).resolves.toBe(6);
-        expect(read().value).toBe(6);
-    });
-});
-
-describe('signal()', () => {
-    let signal: SignalConstructor;
-    let effect: EffectConstructor;
-
-    beforeEach(() => {
-        const store = createStore();
-        signal = store.signal;
-        effect = store.effect;
-    });
-
-    it('Creates a new signal.', () => {
-        const [get, set] = signal(0);
-        expect(get()).toBe(0);
-        set(42);
-        expect(get()).toBe(42);
-    });
-
-    it('Returns an object with read and update functions.', () => {
-        const count = signal(0);
-
-        expect(count).toHaveProperty('read');
-        expect(count.read).toBeInstanceOf(Function);
-        expectTypeOf(count.read).toEqualTypeOf<SignalReader<number>>();
-
-        expect(count).toHaveProperty('update');
-        expect(count.update).toBeInstanceOf(Function);
-        expectTypeOf(count.update).toEqualTypeOf<SignalUpdater<number>>();
-
-        expect(count.read()).toBe(0);
-        count.update(42);
-        expect(count.read()).toBe(42);
-    });
-
-    it('Allows setting the value using a function.', () => {
-        const [get, set] = signal(0);
-        set((prevValue) => prevValue + 1);
-        expect(get()).toBe(1);
-    });
-
-    it('Does not update when the value is the same.', () => {
-        const [get, set] = signal(0);
-
-        const fx = vi.fn(() => {
-            get();
-        });
-
-        effect(fx);
-
-        expect(fx).toHaveBeenCalledTimes(1);
-
-        set(0);
-        set(0);
-        set(0);
-
-        expect(fx).toHaveBeenCalledTimes(1);
-
-        set(1);
-
-        expect(fx).toHaveBeenCalledTimes(2);
-    });
-
-    it('Allows customizing the equality check.', () => {
-        const [get, set] = signal(0, { equals: equalFunc({ compare: 'loose' }) });
-
-        const fx = vi.fn(() => {
-            get();
-        });
-
-        effect(fx);
-
-        expect(fx).toHaveBeenCalledTimes(1);
-
-        // @ts-expect-error - TS2345: Argument of type 'string' is not assignable to parameter of type 'number | ((prevValue: number) => number)'
-        set('0');
-
-        expect(fx).toHaveBeenCalledTimes(1);
-
-        set(1);
-
-        expect(fx).toHaveBeenCalledTimes(2);
-    });
-});
-
-describe('DefaultInvalidationQueue', () => {
-    it('Provides an array-backed FIFO queue.', () => {
-        const queue = new DefaultInvalidationQueue<number>();
-
-        expect(queue.size).toBe(0);
-
-        queue.enqueue(1);
-        queue.enqueue(2);
-
-        expect(queue.size).toBe(2);
-        expect(queue.dequeue()).toBe(1);
-        expect(queue.dequeue()).toBe(2);
-        expect(queue.dequeue()).toBeUndefined();
-        expect(queue.size).toBe(0);
-    });
-
-    it('Clears queued items.', () => {
-        const queue = new DefaultInvalidationQueue<number>();
-
-        queue.enqueue(1);
-        queue.enqueue(2);
-        queue.clear();
-
-        expect(queue.size).toBe(0);
-        expect(queue.dequeue()).toBeUndefined();
     });
 });
 

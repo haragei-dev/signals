@@ -23,6 +23,26 @@ describe('action()', () => {
         action = store.action;
     });
 
+    it('Exposes submit, abort, and reset controls.', async () => {
+        const [read, controls] = action(
+            async (_context: ActionContext<number>, value: number) => value * 2,
+        );
+
+        expect(read()).toEqual({
+            status: 'idle',
+            value: undefined,
+            error: undefined,
+            isStale: false,
+        });
+        expect(controls.submit).toBeInstanceOf(Function);
+        expect(controls.submitWith).toBeInstanceOf(Function);
+        expect(controls.abort).toBeInstanceOf(Function);
+        expect(controls.reset).toBeInstanceOf(Function);
+
+        await expect(controls.submit(3)).resolves.toBe(6);
+        expect(read().value).toBe(6);
+    });
+
     it('Exposes action types in the public API.', () => {
         expectTypeOf<ActionOptions>().toExtend<{
             signal?: AbortSignal;
