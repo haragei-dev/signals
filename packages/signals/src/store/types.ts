@@ -229,6 +229,72 @@ export type MemoConstructor = <T>(
     options?: SignalOptions & EffectOptions,
 ) => SignalReader<T>;
 
+export type ActionStatus = 'idle' | 'pending' | 'success' | 'error';
+
+export type ActionState<T, E = unknown> =
+    | { status: 'idle'; value: undefined; error: undefined; isStale: false }
+    | { status: 'pending'; value: undefined; error: undefined; isStale: false }
+    | { status: 'pending'; value: T; error: undefined; isStale: true }
+    | { status: 'success'; value: T; error: undefined; isStale: false }
+    | { status: 'error'; value: T | undefined; error: E; isStale: boolean };
+
+export interface ActionContext<T, E = unknown> {
+    /**
+     * Abort signal for the current action run.
+     */
+    readonly signal: AbortSignal;
+
+    /**
+     * Registers a cleanup callback for the current action run.
+     */
+    onCleanup(cleanup: () => void): void;
+
+    /**
+     * The previous visible action state.
+     */
+    readonly previous: Immutable<ActionState<T, E>>;
+}
+
+export interface ActionControls<Args extends readonly unknown[], T> {
+    submit(...args: Args): Promise<Immutable<T>>;
+    submitWith(options: ActionSubmitOptions, ...args: Args): Promise<Immutable<T>>;
+    abort(): void;
+    reset(): void;
+}
+
+export interface ActionSubmitOptions {
+    readonly signal?: AbortSignal;
+}
+
+export interface ActionOptions {
+    /**
+     * Optional lifetime signal for the action instance itself.
+     */
+    readonly signal?: AbortSignal;
+
+    /**
+     * What to do when an action is submitted while a previous run is still pending.
+     *
+     * Defaults to `'cancel'`.
+     */
+    readonly concurrency?: AsyncEffectConcurrency;
+
+    /**
+     * Custom queue used when `concurrency` is set to `'queue'`.
+     */
+    readonly queue?: InvalidationQueue;
+
+    /**
+     * How rejected action runs are handled.
+     */
+    readonly onError?: AsyncEffectErrorOptions;
+}
+
+export type ActionConstructor = <T, Args extends readonly unknown[] = [], E = unknown>(
+    execute: (context: ActionContext<T, E>, ...args: Args) => Promise<Immutable<T>>,
+    options?: ActionOptions,
+) => readonly [read: SignalReader<ActionState<T, E>>, controls: ActionControls<Args, T>];
+
 export type ResourceStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 export type ResourceState<T, E = unknown> =
@@ -324,6 +390,17 @@ export interface Store {
      * @returns A getter function.
      */
     readonly memo: MemoConstructor;
+
+    /**
+     * Creates a new imperative async action.
+     *
+     * An action is executed only when `submit()` is called.
+     *
+     * @param execute The async action executor function.
+     * @param options Optional parameters for customizing concurrency and error handling.
+     * @returns A state reader and action controls.
+     */
+    readonly action: ActionConstructor;
 
     /**
      * Creates a new asynchronous derived resource.

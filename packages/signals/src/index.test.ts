@@ -1,6 +1,9 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import * as api from './index';
 import type {
+    ActionConstructor,
+    ActionContext,
+    ActionSubmitOptions,
     AsyncEffectFunction,
     AsyncEffectOptions,
     BatchFunction,
@@ -26,6 +29,7 @@ describe('public API', () => {
         expect(store.memo).toBeInstanceOf(Function);
         expect(store.signal).toBeInstanceOf(Function);
         expect(store.batch).toBeInstanceOf(Function);
+        expect(store.action).toBeInstanceOf(Function);
         expect(store.untracked).toBeInstanceOf(Function);
         expect(store.unlink).toBeInstanceOf(Function);
         expect(store.resource).toBeInstanceOf(Function);
@@ -127,6 +131,28 @@ describe('public API', () => {
         expect(controls.refresh).toBeInstanceOf(Function);
         expect(controls.abort).toBeInstanceOf(Function);
         expect(controls.reset).toBeInstanceOf(Function);
+    });
+
+    it('should expose the action() function', async () => {
+        expect(api.action).toBeDefined();
+        expect(api.action).toBeInstanceOf(Function);
+        expectTypeOf(api.action).toEqualTypeOf<ActionConstructor>();
+
+        const [read, controls] = api.action(
+            async (_context: ActionContext<number>, value: number) => value * 2,
+        );
+
+        expect(read().status).toBe('idle');
+        expect(controls.submit).toBeInstanceOf(Function);
+        expect(controls.submitWith).toBeInstanceOf(Function);
+        expect(controls.abort).toBeInstanceOf(Function);
+        expect(controls.reset).toBeInstanceOf(Function);
+        expectTypeOf<ActionSubmitOptions>().toExtend<{ signal?: AbortSignal }>();
+        expectTypeOf<NonNullable<Parameters<ActionConstructor>[1]>>().toExtend<{
+            signal?: AbortSignal;
+        }>();
+        await expect(controls.submit(21)).resolves.toBe(42);
+        expect(read().value).toBe(42);
     });
 
     it('should expose the batch() function', async () => {

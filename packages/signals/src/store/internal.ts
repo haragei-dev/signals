@@ -73,6 +73,7 @@ export interface AsyncRunnerContext {
     readonly _signal: AbortSignal;
     _onCleanup(cleanup: () => void): void;
     _track<T>(read: SignalReader<T>): Immutable<T>;
+    _abort(): void;
 }
 
 export type AsyncRunCompletion<Result> =
@@ -97,8 +98,14 @@ export interface AsyncRunnerAbortHelpers {
 
 export interface AsyncRunnerHooks<Prepared, Result, Trigger = void> {
     _prepare(trigger: Trigger | undefined): Prepared;
+    _skipTrigger?(trigger: Trigger): boolean;
     _execute(context: AsyncRunnerContext, prepared: Prepared): Result | PromiseLike<Result>;
     _handleSyncResult?(run: EffectRun, result: Result, prepared: Prepared): boolean;
+    _onCompletion?(
+        run: EffectRun,
+        completion: AsyncRunCompletion<Result>,
+        prepared: Prepared,
+    ): void;
     _commit(run: EffectRun, completion: AsyncRunCompletion<Result>, prepared: Prepared): void;
     _shouldCommit?(
         run: EffectRun,
@@ -107,6 +114,7 @@ export interface AsyncRunnerHooks<Prepared, Result, Trigger = void> {
         info: AsyncRunnerCommitInfo,
     ): boolean;
     _mergeTrigger?(current: Trigger | undefined, next: Trigger | undefined): Trigger | undefined;
+    _dropTrigger?(trigger: Trigger): void;
     _defaultErrorHandler?(error: unknown): void;
     _onErrorCancel?(control: AsyncRunnerControl<Trigger>): void;
     _abortRun?(

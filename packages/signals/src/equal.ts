@@ -222,17 +222,17 @@ function deepEqual(a: unknown, b: unknown, params: DeepEqualParams, depth = 0): 
 
     if (a instanceof RegExp) {
         return (
-            b instanceof RegExp &&
-            a.source === b.source &&
-            a.flags === b.flags &&
-            a.lastIndex === b.lastIndex
+            b instanceof RegExp
+            && a.source === b.source
+            && a.flags === b.flags
+            && a.lastIndex === b.lastIndex
         );
     }
 
     if (
-        a.valueOf !== Object.prototype.valueOf &&
-        typeof a.valueOf === 'function' &&
-        typeof b.valueOf === 'function'
+        a.valueOf !== Object.prototype.valueOf
+        && typeof a.valueOf === 'function'
+        && typeof b.valueOf === 'function'
     ) {
         return deepEqual(a.valueOf(), b.valueOf(), params, depth);
     }
@@ -276,8 +276,8 @@ function mapsEqual(
             const [rhsKey, rhsValue] = rhsEntries[i]!;
 
             if (
-                deepEqual(lhsKey, rhsKey, params, depth) &&
-                deepEqual(lhsValue, rhsValue, params, depth)
+                deepEqual(lhsKey, rhsKey, params, depth)
+                && deepEqual(lhsValue, rhsValue, params, depth)
             ) {
                 rhsEntries.splice(i, 1);
                 continue outer;

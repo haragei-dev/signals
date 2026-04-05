@@ -47,6 +47,7 @@ interface AsyncRunnerOptions {
               readonly handler?: ((error: unknown, info: AsyncEffectErrorInfo) => void) | undefined;
           }
         | undefined;
+    readonly _trackDependencies?: boolean | undefined;
 }
 
 export function createAsyncRunner<Prepared, Result, Trigger = void>(
@@ -57,6 +58,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         _queue: queue,
         _concurrency: concurrency = 'cancel',
         _onError: onError,
+        _trackDependencies: trackDependencies = true,
     }: AsyncRunnerOptions,
     hooks: AsyncRunnerHooks<Prepared, Result, Trigger>,
 ): AsyncRunnerControl<Trigger> {
@@ -93,6 +95,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     let pendingRerun = false;
     let stopped = false;
     let nextTrigger: Trigger | undefined;
+    const queuedTriggers: Array<Trigger | typeof NO_TRIGGER> = [];
 
     const cleanupCallback = (cleanup: () => void): void => {
         try {
@@ -107,6 +110,24 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             unlink();
         }
         retainedDependencyUnlinks.clear();
+    };
+
+    const dropTrigger = (trigger: Trigger | undefined): void => {
+        if (trigger !== undefined) {
+            hooks._dropTrigger?.(trigger);
+        }
+    };
+
+    const clearPendingTriggers = (): void => {
+        dropTrigger(nextTrigger);
+        nextTrigger = undefined;
+
+        for (const trigger of queuedTriggers) {
+            if (trigger !== NO_TRIGGER) {
+                hooks._dropTrigger?.(trigger);
+            }
+        }
+        queuedTriggers.length = 0;
     };
 
     const cleanupRun = (run: EffectRun): void => {
@@ -205,7 +226,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             _isCleanupComplete: false,
             _areDependenciesComplete: false,
             _isActive: true,
-            _isTracking: true,
+            _isTracking: trackDependencies,
             _onDependencyCleanup(unlink) {
                 this._dependencyUnlinks.add(unlink);
             },
@@ -252,13 +273,20 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             return;
         }
 
-        const nextInvalidation = pendingQueue.dequeue();
-        if (!nextInvalidation) {
-            return;
-        }
+        while (true) {
+            const nextInvalidation = pendingQueue.dequeue();
+            if (!nextInvalidation) {
+                return;
+            }
 
-        void nextInvalidation;
-        startRun();
+            void nextInvalidation;
+            const queuedTrigger = queuedTriggers.shift();
+            const nextTrigger = queuedTrigger === NO_TRIGGER ? undefined : queuedTrigger;
+
+            if (startRun(nextTrigger)) {
+                return;
+            }
+        }
     };
 
     const commitInfo = (): AsyncRunnerCommitInfo => ({
@@ -285,6 +313,8 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         if (completion._status === REJECTED) {
             handleAsyncError(completion._error, run);
         }
+
+        hooks._onCompletion?.(run, completion, prepared);
 
         if (stopped) {
             cleanupRun(run);
@@ -336,23 +366,34 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         nextTrigger = hooks._mergeTrigger?.(nextTrigger, trigger) ?? trigger ?? nextTrigger;
     };
 
-    const startRun = (): void => {
+    const startRun = (trigger = consumeTrigger()): boolean => {
         clearCommittedRun();
         clearRetainedDependencies();
 
         if (stopped) {
-            return;
+            return false;
         }
 
-        const prepared = hooks._prepare(consumeTrigger());
+        if (trigger !== undefined && hooks._skipTrigger?.(trigger)) {
+            dropTrigger(trigger);
+            return false;
+        }
+
+        const prepared = hooks._prepare(trigger);
         const run = createRun();
 
         latestStartedGeneration = run._generation;
         activeRuns.add(run);
         preparedRuns.set(run, prepared);
-        state._runs.push(run);
         const wasTracking = state._isTracking;
-        state._isTracking = true;
+
+        if (trackDependencies) {
+            state._runs.push(run);
+            state._isTracking = true;
+        } else {
+            state._isTracking = false;
+            run._isTracking = false;
+        }
 
         let result: Result | PromiseLike<Result>;
 
@@ -366,13 +407,18 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
                     _track<T>(read: SignalReader<T>): Immutable<T> {
                         return track(run, read);
                     },
+                    _abort() {
+                        abortRun(run, ABORT_CONTROL);
+                    },
                 } satisfies AsyncRunnerContext,
                 prepared,
             );
         } catch (error) {
             run._isTracking = false;
             state._isTracking = wasTracking;
-            state._runs.pop();
+            if (trackDependencies) {
+                state._runs.pop();
+            }
             finishRun(run);
             cleanupRun(run);
             control._stop();
@@ -381,13 +427,15 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
 
         run._isTracking = false;
         state._isTracking = wasTracking;
-        state._runs.pop();
+        if (trackDependencies) {
+            state._runs.pop();
+        }
 
         if (run._state === CANCELED) {
             finishRun(run);
             cleanupRun(run);
             startNextQueuedRun();
-            return;
+            return false;
         }
 
         const currentPrepared = preparedRuns.get(run) as Prepared;
@@ -396,7 +444,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
 
             run._state = SETTLED;
             currentCommittedRun = run;
-            return;
+            return true;
         }
 
         run._state = PENDING_ASYNC;
@@ -409,6 +457,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
                 finalizeCompletion(run, { _status: REJECTED, _error: error });
             },
         );
+        return true;
     };
 
     const invalidate = (trigger: Trigger | undefined, fromDependency: boolean): void => {
@@ -423,9 +472,9 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             throw new Error('Cyclic dependency detected');
         }
 
-        mergeTrigger(trigger);
-
         if (concurrencyMode === CONCURRENCY_CANCEL) {
+            mergeTrigger(trigger);
+
             if (hasBlockingRun()) {
                 pendingRerun = true;
                 for (const run of activeRuns) {
@@ -439,16 +488,17 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         }
 
         if (concurrencyMode === CONCURRENCY_CONCURRENT) {
-            startRun();
+            startRun(trigger);
             return;
         }
 
         if (hasBlockingRun()) {
             pendingQueue?.enqueue({ generation: ++invalidationGeneration });
+            queuedTriggers.push(trigger === undefined ? NO_TRIGGER : trigger);
             return;
         }
 
-        startRun();
+        startRun(trigger);
     };
 
     const control: AsyncRunnerControl<Trigger> = {
@@ -465,6 +515,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
 
             pendingRerun = false;
             pendingQueue?.clear();
+            clearPendingTriggers();
 
             for (const run of activeRuns) {
                 abortRun(run, ABORT_CONTROL);
@@ -478,6 +529,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             stopped = true;
             pendingRerun = false;
             pendingQueue?.clear();
+            clearPendingTriggers();
             state._pendingEffects.delete(effect);
             state._activeEffects.delete(effect);
             clearCommittedRun();
@@ -504,6 +556,8 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
 
     return control;
 }
+
+const NO_TRIGGER = Symbol('NO_TRIGGER');
 
 function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
     return (

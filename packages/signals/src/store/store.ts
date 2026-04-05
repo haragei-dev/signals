@@ -1,9 +1,13 @@
+import { createAction } from './action';
 import { createEffect } from './effect';
 import { flushPendingEffects } from './flush';
 import type { StoreState } from './internal';
 import { createResource } from './resource';
 import { createSignal, readUntracked } from './signal';
 import type {
+    ActionConstructor,
+    ActionOptions,
+    ActionContext,
     AsyncEffectFunction,
     AsyncEffectOptions,
     EffectConstructor,
@@ -74,6 +78,13 @@ class SignalStore implements Store {
         });
 
         return read;
+    };
+
+    public action: ActionConstructor = <T, Args extends readonly unknown[] = [], E = unknown>(
+        execute: (context: ActionContext<T, E>, ...args: Args) => Promise<Immutable<T>>,
+        options?: ActionOptions,
+    ) => {
+        return createAction<Args, T, E>(this.#state, execute, options);
     };
 
     public resource: ResourceConstructor = <T, E = unknown>(

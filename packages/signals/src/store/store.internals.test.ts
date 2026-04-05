@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { createAction } from './action';
 import { createAsyncRunner } from './async-runner';
 import { createEffect } from './effect';
 import { ABORT_CONTROL, CANCELED, FULFILLED } from './internal';
@@ -146,6 +147,76 @@ describe('createAsyncRunner()', () => {
         expect(commits).toEqual([1]);
     });
 
+    it('Unwinds tracking state when execute throws synchronously during runner startup.', () => {
+        const state = createTestState();
+        const effect: EffectInstance = {
+            _isMemo: false,
+            _update() {
+                control._invalidate();
+            },
+            _cancel() {
+                control._stop();
+            },
+        };
+
+        const control = createAsyncRunner(
+            state,
+            effect,
+            {},
+            {
+                _prepare() {
+                    return undefined;
+                },
+                _execute() {
+                    throw new Error('boom');
+                },
+                _commit() {},
+            },
+        );
+
+        expect(() => {
+            control._invalidate();
+        }).toThrow('boom');
+        expect(state._runs).toEqual([]);
+        expect(state._isTracking).toBe(false);
+        expect(state._activeEffects.size).toBe(0);
+    });
+
+    it('Unwinds untracked runner state when execute throws synchronously during startup.', () => {
+        const state = createTestState();
+        const effect: EffectInstance = {
+            _isMemo: false,
+            _update() {
+                control._invalidate();
+            },
+            _cancel() {
+                control._stop();
+            },
+        };
+
+        const control = createAsyncRunner(
+            state,
+            effect,
+            { _trackDependencies: false },
+            {
+                _prepare() {
+                    return undefined;
+                },
+                _execute() {
+                    throw new Error('boom');
+                },
+                _commit() {},
+            },
+        );
+
+        expect(() => {
+            control._invalidate();
+        }).toThrow('boom');
+        expect(state._runs).toEqual([]);
+        expect(state._isTracking).toBe(false);
+        expect(state._activeEffects.size).toBe(0);
+    });
+
     it('Preserves dependencies idempotently when active work is canceled repeatedly.', async () => {
         const state = createTestState();
         const [read] = createSignal(state, 0);
@@ -227,5 +298,22 @@ describe('createEffect() internals', () => {
 
         expect(state._activeEffects.size).toBe(0);
         expect(state._pendingEffects.size).toBe(0);
+    });
+
+    it('Keeps internal action effect updates inert.', () => {
+        const state = createTestState();
+        const run = vi.fn(async () => 1);
+        const [read] = createAction(state, run);
+        const [fx] = Array.from(state._activeEffects);
+
+        fx?._update();
+
+        expect(run).not.toHaveBeenCalled();
+        expect(read()).toEqual({
+            status: 'idle',
+            value: undefined,
+            error: undefined,
+            isStale: false,
+        });
     });
 });

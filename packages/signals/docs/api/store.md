@@ -2,9 +2,9 @@
 
 ## Overview
 
-`createStore()` creates an isolated reactive graph with its own signals, memos, effects, resources, and batching state.
+`createStore()` creates an isolated reactive graph with its own signals, memos, effects, actions, resources, and batching state.
 
-Store-local APIs follow the same immutable-read contract as the global helpers: reads from `store.signal()`, `store.memo()`, `store.untracked()`, `track()`, and `store.resource()` return `Immutable<T>` snapshots.
+Store-local APIs follow the same immutable-read contract as the global helpers: reads from `store.signal()`, `store.memo()`, `store.untracked()`, `track()`, `store.action()`, and `store.resource()` return `Immutable<T>` snapshots.
 
 Use stores when you want:
 
@@ -40,6 +40,7 @@ interface Store {
     readonly untracked: UntrackedReader;
     readonly effect: EffectConstructor;
     readonly memo: MemoConstructor;
+    readonly action: ActionConstructor;
     readonly resource: ResourceConstructor;
     readonly batch: BatchFunction;
     unlink(): Promise<void>;
@@ -56,6 +57,7 @@ The global functions:
 - `memo()`
 - `effect()`
 - `resource()`
+- `action()`
 - `batch()`
 - `untracked()`
 
@@ -83,6 +85,7 @@ Each store exposes the same behavior as the global helpers:
 - `store.untracked()`
 - `store.effect()`
 - `store.memo()`
+- `store.action()`
 - `store.resource()`
 - `store.batch()`
 
@@ -145,6 +148,18 @@ const [user] = store.resource(async ({ track, signal }) => {
     const response = await fetch(`/api/users/${id}`, { signal });
     return response.json();
 });
+```
+
+### Store-local action
+
+```ts
+const store = createStore();
+
+const [saveUser, controls] = store.action(async (_context, id: string) => {
+    return await saveUserById(id);
+});
+
+void controls.submit('user-1');
 ```
 
 ## Related Topics

@@ -1,4 +1,5 @@
 import {
+    type ActionConstructor,
     type AsyncEffectFunction,
     type AsyncEffectOptions,
     type EffectFunction,
@@ -82,6 +83,19 @@ export function memo<T>(
 ): SignalReader<T> {
     return globalStore.memo(compute, options);
 }
+
+/**
+ * Creates a new imperative async action in the global store.
+ *
+ * An action is executed only when `submit()` or `submitWith()` is called.
+ *
+ * @param execute The async action executor function.
+ * @param options Optional parameters for customizing concurrency and error handling.
+ * @returns A state reader and action controls.
+ */
+export const action: ActionConstructor = (execute, options) => {
+    return globalStore.action(execute, options);
+};
 
 /**
  * Creates a new async resource in the global store.

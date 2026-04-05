@@ -7,6 +7,7 @@ It provides:
 - signals for reactive state with immutable reads
 - memos for derived state
 - effects for reactive side effects
+- actions for imperative async writes
 - resources for async derived state
 - stores for isolated reactive graphs
 
@@ -17,7 +18,7 @@ pnpm add @haragei/signals
 ```
 
 ```ts
-import { batch, effect, memo, resource, signal, untracked } from '@haragei/signals';
+import { action, batch, effect, memo, resource, signal, untracked } from '@haragei/signals';
 ```
 
 ## Quick Start
@@ -64,6 +65,47 @@ effect(() => {
 });
 ```
 
+## Action Example
+
+```ts
+import { action, effect, signal } from '@haragei/signals';
+
+const name = signal('');
+
+const controller = new AbortController();
+const lifetime = new AbortController();
+
+const [saveProfile, { submitWith }] = action(
+    async ({ signal }, nextName: string) => {
+        const response = await fetch('/api/profile', {
+            method: 'POST',
+            signal,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ name: nextName }),
+        });
+
+        return response.json() as Promise<{ saved: boolean; name: string }>;
+    },
+    { signal: lifetime.signal },
+);
+
+effect(() => {
+    const state = saveProfile();
+
+    if (state.status === 'pending') {
+        console.log('Saving...');
+    }
+
+    if (state.status === 'success') {
+        console.log('Saved profile for', state.value.name);
+    }
+});
+
+void submitWith({ signal: controller.signal }, name());
+```
+
+`submitWith({ signal })` controls one submit attempt. `ActionOptions.signal` controls the lifetime of the action instance itself.
+
 ## Immutable Reads
 
 Signals can store objects, arrays, and other structured values, but reactive reads are typed as immutable snapshots.
@@ -107,6 +149,12 @@ API reference: [`docs/api/effects.md`](./docs/api/effects.md)
 Resources model async derived state. They expose loading, ready, and error states, keep stale values while refreshing, and provide imperative controls such as `refresh()`, `abort()`, and `reset()`. Resource state values and `previous` snapshots are typed as immutable.
 
 API reference: [`docs/api/resources.md`](./docs/api/resources.md)
+
+### Actions
+
+Actions model imperative async write operations such as form submissions. They never run reactively, only when `submit()` or `submitWith()` is called, and they expose immutable action state plus `submit()`, `submitWith()`, `abort()`, and `reset()` controls. `submitWith()` adds submit-scoped cancellation, while `abort()` remains action-wide and rolls the visible state back to the last settled result instead of leaving the action stuck in `pending`.
+
+API reference: [`docs/api/actions.md`](./docs/api/actions.md)
 
 ### Stores
 

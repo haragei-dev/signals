@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { equalFunc } from '../equal';
 import { deferred, flushPromises } from '../test/store-test-helpers';
 import {
+    type ActionConstructor,
+    type ActionContext,
     type BatchFunction,
     type EffectConstructor,
     type MemoConstructor,
@@ -20,6 +22,7 @@ describe('createStore()', () => {
         expect(store.signal).toBeInstanceOf(Function);
         expect(store.effect).toBeInstanceOf(Function);
         expect(store.memo).toBeInstanceOf(Function);
+        expect(store.action).toBeInstanceOf(Function);
         expect(store.batch).toBeInstanceOf(Function);
         expect(store.untracked).toBeInstanceOf(Function);
         expect(store.unlink).toBeInstanceOf(Function);
@@ -41,6 +44,34 @@ describe('createStore()', () => {
         set(1);
 
         expect(value).toBe(0);
+    });
+});
+
+describe('action()', () => {
+    let action: ActionConstructor;
+
+    beforeEach(() => {
+        const store = createStore();
+        action = store.action;
+    });
+
+    it('Exposes submit, abort, and reset controls.', async () => {
+        const [read, controls] = action(
+            async (_context: ActionContext<number>, value: number) => value * 2,
+        );
+
+        expect(read()).toEqual({
+            status: 'idle',
+            value: undefined,
+            error: undefined,
+            isStale: false,
+        });
+        expect(controls.submit).toBeInstanceOf(Function);
+        expect(controls.abort).toBeInstanceOf(Function);
+        expect(controls.reset).toBeInstanceOf(Function);
+
+        await expect(controls.submit(3)).resolves.toBe(6);
+        expect(read().value).toBe(6);
     });
 });
 
