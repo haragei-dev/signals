@@ -175,9 +175,7 @@ export function createAction<Args extends readonly unknown[], T, E = unknown>(
                         execute(
                             {
                                 signal: context._signal,
-                                onCleanup(cleanup) {
-                                    context._onCleanup(cleanup);
-                                },
+                                onCleanup: context._onCleanup,
                                 previous: prepared._previous,
                             } satisfies ActionContext<T, E>,
                             ...trigger._args,

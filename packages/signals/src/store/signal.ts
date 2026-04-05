@@ -3,17 +3,6 @@ import type { EffectInstance, StoreState } from './internal';
 import { flushPendingEffects } from './flush';
 import type { Immutable, Signal, SignalOptions, SignalReader, SignalUpdater } from './types';
 
-const signalTuple = class SignalTuple<T> extends Array<SignalReader<T> | SignalUpdater<T>> {
-    public readonly read: SignalReader<T>;
-    public readonly update: SignalUpdater<T>;
-
-    constructor(read: SignalReader<T>, update: SignalUpdater<T>) {
-        super(2);
-        this.read = this[0] = read;
-        this.update = this[1] = update;
-    }
-};
-
 export function createSignal<T>(
     state: StoreState,
     initialValue: T | Immutable<T>,
@@ -60,7 +49,10 @@ export function createSignal<T>(
         flushPendingEffects(state);
     };
 
-    return new signalTuple(read, write) as unknown as Signal<T>;
+    const signal = [read, write] as unknown as Signal<T>;
+    signal.read = read;
+    signal.update = write;
+    return signal;
 }
 
 export function readUntracked<T>(state: StoreState, read: SignalReader<T>): Immutable<T> {

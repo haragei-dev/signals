@@ -1,14 +1,10 @@
-import {
-    type ActionConstructor,
-    type AsyncEffectFunction,
-    type AsyncEffectOptions,
-    type EffectFunction,
-    type EffectOptions,
-    type Immutable,
-    type ResourceConstructor,
-    type Signal,
-    type SignalOptions,
-    type SignalReader,
+import type {
+    ActionConstructor,
+    EffectConstructor,
+    MemoConstructor,
+    ResourceConstructor,
+    SignalConstructor,
+    UntrackedReader,
 } from './store/types';
 import { createStore } from './store/store';
 
@@ -31,18 +27,14 @@ const globalStore = createStore();
  * @param options Optional parameters for customizing the behavior.
  * @returns A `[read, update]` tuple of accessor functions.
  */
-export function signal<T>(initialValue: T | Immutable<T>, options?: SignalOptions): Signal<T> {
-    return globalStore.signal(initialValue, options);
-}
+export const signal: SignalConstructor = globalStore.signal;
 
 /**
  * Reads the value of a signal without tracking it.
  *
  * @param read The signal reader function.
  */
-export function untracked<T>(read: SignalReader<T>): Immutable<T> {
-    return globalStore.untracked(read);
-}
+export const untracked: UntrackedReader = globalStore.untracked;
 
 /**
  * Creates and executes a new effect in the global store.
@@ -56,14 +48,7 @@ export function untracked<T>(read: SignalReader<T>): Immutable<T> {
  * @param options Optional parameters for customizing the behavior.
  * @returns A cleanup function.
  */
-export function effect(execute: EffectFunction, options?: EffectOptions): () => void;
-export function effect(execute: AsyncEffectFunction, options?: AsyncEffectOptions): () => void;
-export function effect(
-    execute: EffectFunction | AsyncEffectFunction,
-    options?: EffectOptions | AsyncEffectOptions,
-): () => void {
-    return globalStore.effect(execute as AsyncEffectFunction, options as AsyncEffectOptions);
-}
+export const effect: EffectConstructor = globalStore.effect;
 
 /**
  * Creates a new computed (and read-only) signal in the global store.
@@ -77,12 +62,7 @@ export function effect(
  * @param options Optional parameters for customizing the behavior.
  * @returns A getter function.
  */
-export function memo<T>(
-    compute: () => T,
-    options?: SignalOptions & EffectOptions,
-): SignalReader<T> {
-    return globalStore.memo(compute, options);
-}
+export const memo: MemoConstructor = globalStore.memo;
 
 /**
  * Creates a new imperative async action in the global store.
@@ -93,9 +73,7 @@ export function memo<T>(
  * @param options Optional parameters for customizing concurrency and error handling.
  * @returns A state reader and action controls.
  */
-export const action: ActionConstructor = (execute, options) => {
-    return globalStore.action(execute, options);
-};
+export const action: ActionConstructor = globalStore.action;
 
 /**
  * Creates a new async resource in the global store.
@@ -106,9 +84,7 @@ export const action: ActionConstructor = (execute, options) => {
  * @param options Optional parameters for customizing scheduling and writes.
  * @returns A state reader and resource controls.
  */
-export const resource: ResourceConstructor = (load, options) => {
-    return globalStore.resource(load, options);
-};
+export const resource: ResourceConstructor = globalStore.resource;
 
 /**
  * Executes a batch of updates within the global store.
@@ -118,6 +94,4 @@ export const resource: ResourceConstructor = (load, options) => {
  *
  * @param execute The function to execute.
  */
-export function batch(execute: () => void): void {
-    globalStore.batch(execute);
-}
+export const batch = globalStore.batch;

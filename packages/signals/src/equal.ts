@@ -191,28 +191,30 @@ function deepEqual(a: unknown, b: unknown, params: DeepEqualParams, depth = 0): 
     }
 
     if (a instanceof Map) {
-        if (!(b instanceof Map) || a.size !== b.size) {
+        if (a.size !== b.size) {
             return false;
         }
 
-        return mapsEqual(a, b, params, depth);
+        return mapsEqual(a, b as unknown as Map<unknown, unknown>, params, depth);
     }
 
     if (a instanceof Set) {
-        if (!(b instanceof Set) || a.size !== b.size) {
+        if (a.size !== b.size) {
             return false;
         }
 
-        return setsEqual(a, b, params, depth);
+        return setsEqual(a, b as unknown as Set<unknown>, params, depth);
     }
 
     if (isTypedArray(a)) {
-        if (!isTypedArray(b) || a.length !== b.length) {
+        const rhs = b as unknown as ArrayLike<number>;
+
+        if (a.length !== rhs.length) {
             return false;
         }
 
         for (let i = 0; i < a.length; i++) {
-            if (a[i] !== b[i]) {
+            if (a[i] !== rhs[i]) {
                 return false;
             }
         }
@@ -221,12 +223,7 @@ function deepEqual(a: unknown, b: unknown, params: DeepEqualParams, depth = 0): 
     }
 
     if (a instanceof RegExp) {
-        return (
-            b instanceof RegExp
-            && a.source === b.source
-            && a.flags === b.flags
-            && a.lastIndex === b.lastIndex
-        );
+        return a.source === b.source && a.flags === b.flags && a.lastIndex === b.lastIndex;
     }
 
     if (

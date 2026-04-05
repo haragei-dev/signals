@@ -108,25 +108,13 @@ export function createResource<T, E = unknown>(
                 try {
                     return Promise.resolve(
                         load({
-                            cancel() {
-                                fx._cancel();
-                            },
-                            refresh() {
-                                controls.refresh();
-                            },
-                            abort() {
-                                controls.abort();
-                            },
-                            reset() {
-                                controls.reset();
-                            },
-                            track<U>(reader: SignalReader<U>): Immutable<U> {
-                                return context._track(reader);
-                            },
+                            cancel: fx._cancel,
+                            refresh: controls.refresh,
+                            abort: controls.abort,
+                            reset: controls.reset,
+                            track: context._track as <U>(reader: SignalReader<U>) => Immutable<U>,
                             signal: context._signal,
-                            onCleanup(cleanup) {
-                                context._onCleanup(cleanup);
-                            },
+                            onCleanup: context._onCleanup,
                             previous: prepared._previous,
                             cause: prepared._cause,
                         }),

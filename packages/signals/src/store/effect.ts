@@ -62,13 +62,9 @@ export function createEffect(
             _execute(context): void | (() => void) | Promise<void> {
                 return execute({
                     cancel,
-                    track<T>(read: SignalReader<T>): Immutable<T> {
-                        return context._track(read);
-                    },
+                    track: context._track as <T>(read: SignalReader<T>) => Immutable<T>,
                     signal: context._signal,
-                    onCleanup(cleanup) {
-                        context._onCleanup(cleanup);
-                    },
+                    onCleanup: context._onCleanup,
                 } as EffectContext & AsyncEffectContext);
             },
             _handleSyncResult(run, result): boolean {
