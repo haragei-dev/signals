@@ -22,8 +22,8 @@ catalogs:
       specifier: 10.0.1
       version: 10.0.1
     '@types/node':
-      specifier: 25.5.0
-      version: 25.5.0
+      specifier: 25.5.2
+      version: 25.5.2
     '@vitest/coverage-v8':
       specifier: 4.1.2
       version: 4.1.2
@@ -91,16 +91,16 @@ importers:
         version: 0.2.1
       '@changesets/cli':
         specifier: 'catalog:'
-        version: 2.30.0(@types/node@25.5.0)
+        version: 2.30.0(@types/node@25.5.2)
       '@eslint/js':
         specifier: 'catalog:'
         version: 10.0.1(eslint@10.2.0)
       '@types/node':
         specifier: 'catalog:'
-        version: 25.5.0
+        version: 25.5.2
       '@vitest/coverage-v8':
         specifier: 'catalog:'
-        version: 4.1.2(vitest@4.1.2(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)))
+        version: 4.1.2(vitest@4.1.2(@types/node@25.5.2)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)))
       clean-publish:
         specifier: 'catalog:'
         version: 6.0.5
@@ -145,10 +145,10 @@ importers:
         version: 5.0.5(@typescript-eslint/parser@8.58.0(eslint@10.2.0)(typescript@6.0.2))(eslint@10.2.0)(typescript@6.0.2)
       vite:
         specifier: 'catalog:'
-        version: 8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)
+        version: 8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)
       vitest:
         specifier: 'catalog:'
-        version: 4.1.2(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 4.1.2(@types/node@25.5.2)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/react-signals:
     dependencies:
@@ -202,7 +202,7 @@ importers:
         version: 6.0.2
       vite:
         specifier: ^6.0.0
-        version: 6.4.2(@types/node@25.5.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+        version: 6.4.2(@types/node@25.5.2)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/signals:
     publishDirectory: package
@@ -224,7 +224,7 @@ importers:
         version: 6.0.2
       vite:
         specifier: ^6.0.0
-        version: 6.4.2(@types/node@25.5.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+        version: 6.4.2(@types/node@25.5.2)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
   packages/signals/examples/todomvc-async:
     dependencies:
@@ -252,7 +252,7 @@ importers:
         version: 6.0.2
       vite:
         specifier: ^6.0.0
-        version: 6.4.2(@types/node@25.5.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+        version: 6.4.2(@types/node@25.5.2)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
 packages:
 
@@ -1289,8 +1289,8 @@ packages:
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
 
-  '@types/node@25.5.0':
-    resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
+  '@types/node@25.5.2':
+    resolution: {integrity: sha512-tO4ZIRKNC+MDWV4qKVZe3Ql/woTnmHDr5JD8UI5hn2pwBrHEwOEMZK7WlNb5RKB6EoJ02gwmQS9OrjuFnZYdpg==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -2777,7 +2777,7 @@ snapshots:
     dependencies:
       '@changesets/types': 6.1.0
 
-  '@changesets/cli@2.30.0(@types/node@25.5.0)':
+  '@changesets/cli@2.30.0(@types/node@25.5.2)':
     dependencies:
       '@changesets/apply-release-plan': 7.1.0
       '@changesets/assemble-release-plan': 6.0.9
@@ -2793,7 +2793,7 @@ snapshots:
       '@changesets/should-skip-package': 0.1.2
       '@changesets/types': 6.1.0
       '@changesets/write': 0.4.0
-      '@inquirer/external-editor': 1.0.3(@types/node@25.5.0)
+      '@inquirer/external-editor': 1.0.3(@types/node@25.5.2)
       '@manypkg/get-packages': 1.1.3
       ansi-colors: 4.1.3
       enquirer: 2.4.1
@@ -3230,12 +3230,12 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@inquirer/external-editor@1.0.3(@types/node@25.5.0)':
+  '@inquirer/external-editor@1.0.3(@types/node@25.5.2)':
     dependencies:
       chardet: 2.1.1
       iconv-lite: 0.7.2
     optionalDependencies:
-      '@types/node': 25.5.0
+      '@types/node': 25.5.2
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -3469,7 +3469,7 @@ snapshots:
 
   '@types/node@12.20.55': {}
 
-  '@types/node@25.5.0':
+  '@types/node@25.5.2':
     dependencies:
       undici-types: 7.18.2
 
@@ -3485,7 +3485,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 25.5.0
+      '@types/node': 25.5.2
 
   '@typescript-eslint/eslint-plugin@8.58.0(@typescript-eslint/parser@8.58.0(eslint@10.2.0)(typescript@6.0.2))(eslint@10.2.0)(typescript@6.0.2)':
     dependencies:
@@ -3578,7 +3578,7 @@ snapshots:
       '@typescript-eslint/types': 8.58.0
       eslint-visitor-keys: 5.0.1
 
-  '@vitest/coverage-v8@4.1.2(vitest@4.1.2(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)))':
+  '@vitest/coverage-v8@4.1.2(vitest@4.1.2(@types/node@25.5.2)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)))':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/utils': 4.1.2
@@ -3590,7 +3590,7 @@ snapshots:
       obug: 2.1.1
       std-env: 4.0.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.2(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3))
+      vitest: 4.1.2(@types/node@25.5.2)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3))
 
   '@vitest/expect@4.1.2':
     dependencies:
@@ -3601,13 +3601,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.0
 
-  '@vitest/mocker@4.1.2(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3))':
+  '@vitest/mocker@4.1.2(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
       '@vitest/spy': 4.1.2
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)
+      vite: 8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)
 
   '@vitest/pretty-format@4.1.2':
     dependencies:
@@ -4077,7 +4077,7 @@ snapshots:
 
   happy-dom@20.8.9:
     dependencies:
-      '@types/node': 25.5.0
+      '@types/node': 25.5.2
       '@types/whatwg-mimetype': 3.0.2
       '@types/ws': 8.18.1
       entities: 7.0.1
@@ -4742,7 +4742,7 @@ snapshots:
 
   validate-npm-package-name@5.0.1: {}
 
-  vite@6.4.2(@types/node@25.5.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3):
+  vite@6.4.2(@types/node@25.5.2)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.4)
@@ -4751,13 +4751,13 @@ snapshots:
       rollup: 4.60.1
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 25.5.0
+      '@types/node': 25.5.2
       fsevents: 2.3.3
       lightningcss: 1.32.0
       tsx: 4.21.0
       yaml: 2.8.3
 
-  vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3):
+  vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3):
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
@@ -4765,7 +4765,7 @@ snapshots:
       rolldown: 1.0.0-rc.12(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 25.5.0
+      '@types/node': 25.5.2
       esbuild: 0.28.0
       fsevents: 2.3.3
       tsx: 4.21.0
@@ -4774,10 +4774,10 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  vitest@4.1.2(@types/node@25.5.0)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)):
+  vitest@4.1.2(@types/node@25.5.2)(happy-dom@20.8.9)(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)):
     dependencies:
       '@vitest/expect': 4.1.2
-      '@vitest/mocker': 4.1.2(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3))
+      '@vitest/mocker': 4.1.2(vite@8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3))
       '@vitest/pretty-format': 4.1.2
       '@vitest/runner': 4.1.2
       '@vitest/snapshot': 4.1.2
@@ -4794,10 +4794,10 @@ snapshots:
       tinyexec: 1.0.4
       tinyglobby: 0.2.15
       tinyrainbow: 3.1.0
-      vite: 8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.0)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)
+      vite: 8.0.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@25.5.2)(esbuild@0.28.0)(tsx@4.21.0)(yaml@2.8.3)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 25.5.0
+      '@types/node': 25.5.2
       happy-dom: 20.8.9
     transitivePeerDependencies:
       - msw
