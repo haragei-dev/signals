@@ -3,6 +3,21 @@ import type { EffectInstance, StoreState } from './internal';
 import { flushPendingEffects } from './flush';
 import type { Immutable, Signal, SignalOptions, SignalReader, SignalUpdater } from './types';
 
+const READER_OWNER = Symbol('readerOwner');
+
+type OwnedReader<T> = SignalReader<T> & {
+    [READER_OWNER]?: StoreState;
+};
+
+export function attachReaderOwner<T>(state: StoreState, read: SignalReader<T>): SignalReader<T> {
+    (read as OwnedReader<T>)[READER_OWNER] = state;
+    return read;
+}
+
+export function getReaderOwner<T>(read: SignalReader<T>): StoreState | undefined {
+    return (read as OwnedReader<T>)[READER_OWNER];
+}
+
 export function createSignal<T>(
     state: StoreState,
     initialValue: T | Immutable<T>,
@@ -48,6 +63,8 @@ export function createSignal<T>(
 
         flushPendingEffects(state);
     };
+
+    attachReaderOwner(state, read);
 
     const signal = [read, write] as unknown as Signal<T>;
     signal.read = read;

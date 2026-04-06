@@ -18,7 +18,7 @@ pnpm add @haragei/signals
 ```
 
 ```ts
-import { action, batch, effect, memo, resource, signal, untracked } from '@haragei/signals';
+import { action, batch, effect, memo, resource, signal, subscribe, untracked } from '@haragei/signals';
 ```
 
 ## Quick Start
@@ -164,7 +164,7 @@ API reference: [`docs/api/store.md`](./docs/api/store.md)
 
 ### Utilities
 
-The shared runtime utilities cover batching, untracked reads, and queue primitives used by async effects and resources.
+The shared runtime utilities cover batching, adapter subscription helpers, untracked reads, and queue primitives used by async effects and resources.
 
 API reference: [`docs/api/utilities.md`](./docs/api/utilities.md)
 

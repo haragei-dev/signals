@@ -5,17 +5,18 @@
 This page covers the small shared runtime utilities that are not a feature family by themselves:
 
 - `batch()`
+- `subscribe()`
 - `untracked()`
 - `InvalidationQueue`
 - `DefaultInvalidationQueue`
 - `AsyncInvalidation`
 
-It also covers the helper type aliases `BatchFunction` and `UntrackedReader`.
+It also covers the helper type aliases `BatchFunction`, `SubscribeFunction`, and `UntrackedReader`.
 
 ## Canonical Example
 
 ```ts
-import { batch, effect, signal, untracked } from '@haragei/signals';
+import { batch, effect, signal, subscribe, untracked } from '@haragei/signals';
 
 const [a, setA] = signal(1);
 const [b, setB] = signal(2);
@@ -28,12 +29,18 @@ batch(() => {
     setA(3);
     setB(4);
 });
+
+const unsubscribe = subscribe(b, () => {
+    console.log('b changed to', b());
+});
 ```
 
 ## Public API Summary
 
 ```ts
 type UntrackedReader = <T>(read: SignalReader<T>) => Immutable<T>;
+
+type SubscribeFunction = <T>(read: SignalReader<T>, listener: () => void) => () => void;
 
 type BatchFunction = (execute: () => void) => void;
 
@@ -56,6 +63,7 @@ declare class DefaultInvalidationQueue<T = AsyncInvalidation> implements Invalid
 }
 
 declare function batch(execute: () => void): void;
+declare function subscribe<T>(read: SignalReader<T>, listener: () => void): () => void;
 declare function untracked<T>(read: SignalReader<T>): Immutable<T>;
 ```
 
@@ -92,6 +100,25 @@ Within the batch:
 - signals may update multiple times
 - effects and memos do not flush after every individual write
 - dependents observe the final batched state once the batch ends
+
+### `subscribe(read, listener)`
+
+Subscribes a listener to a reader created by this library.
+
+```ts
+const unsubscribe = subscribe(total, () => {
+    console.log('total changed:', total());
+});
+```
+
+This is primarily intended for adapter integrations such as React external-store bindings.
+
+`subscribe()`:
+
+- does not call the listener for the initial subscription snapshot
+- calls the listener after the reader's visible value changes
+- returns an unsubscribe function
+- only works with readers created by `@haragei/signals`
 
 ## Options and Related Types
 
@@ -160,6 +187,7 @@ effect(
 - `untracked()` affects only the wrapped read, not the rest of the surrounding effect or memo.
 - `untracked()` preserves immutable-read semantics. It skips dependency tracking, but it does not opt you back into mutating read values in place.
 - `batch()` batches flushes, not application logic. Reads inside the batch still see the latest written values.
+- `subscribe()` is an adapter/lifecycle helper, not a cross-store escape hatch. It does not make mixed-store reactive execution valid.
 - Queue primitives matter only when `concurrency` is `'queue'`.
 - `DefaultInvalidationQueue` is FIFO and intentionally minimal; custom queue policies can be implemented by supplying your own `InvalidationQueue`.
 

@@ -104,6 +104,11 @@ export interface AsyncEffectOptions extends EffectOptions {
 export type SignalReader<T> = () => Immutable<T>;
 
 /**
+ * Subscribes a listener to changes of a reader created by this library.
+ */
+export type SubscribeFunction = <T>(read: SignalReader<T>, listener: () => void) => () => void;
+
+/**
  * A function that updates a signal value.
  */
 export type SignalUpdater<T> = (

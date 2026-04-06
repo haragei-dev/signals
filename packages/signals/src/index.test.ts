@@ -13,6 +13,7 @@ import type {
     ResourceConstructor,
     Signal,
     SignalConstructor,
+    SubscribeFunction,
     Store,
     UntrackedReader,
 } from './store/types';
@@ -108,6 +109,12 @@ describe('public API', () => {
         set(73);
         expect(value).toBe(42);
         cleanup();
+    });
+
+    it('should expose the subscribe() function', () => {
+        expect(api.subscribe).toBeDefined();
+        expect(api.subscribe).toBeInstanceOf(Function);
+        expectTypeOf(api.subscribe).toEqualTypeOf<SubscribeFunction>();
     });
 
     it('should expose the memo() function', async () => {
