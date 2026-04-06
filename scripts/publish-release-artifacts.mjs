@@ -16,6 +16,7 @@ const args = new Map(
 
 const registry = args.get('--registry');
 const tokenEnvName = args.get('--token-env');
+const otp = args.get('--otp');
 
 if (!registry || !tokenEnvName) {
     throw new Error(
@@ -36,6 +37,10 @@ const publishArgs = ['--userconfig', npmrcPath, '--registry', registry];
 
 if (registryUrl.hostname === 'registry.npmjs.org') {
     publishArgs.push('--access', 'public');
+
+    if (otp) {
+        publishArgs.push('--otp', otp);
+    }
 }
 
 await writeFile(npmrcPath, `//${registryUrl.host}/:_authToken=${token}\n`, 'utf8');
