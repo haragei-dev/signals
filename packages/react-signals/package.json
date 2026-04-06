@@ -64,7 +64,7 @@
     ]
   },
   "scripts": {
-    "build": "rm -rf ./package && clean-publish && tsdown && node ../../scripts/mangle-internal-props.mjs ./package/dist/*.mjs ./package/dist/*.cjs && node ../../scripts/report-bundle-sizes.mjs ./package/dist/*.mjs ./package/dist/*.cjs",
+    "build": "rm -rf ./package && clean-publish && node ../../scripts/resolve-workspace-deps.mjs ./package/package.json && tsdown && node ../../scripts/mangle-internal-props.mjs ./package/dist/*.mjs ./package/dist/*.cjs && node ../../scripts/report-bundle-sizes.mjs ./package/dist/*.mjs ./package/dist/*.cjs",
     "lint": "eslint ./src --config ../../eslint.config.js",
     "test": "vitest run --config ./vitest.config.ts",
     "test:coverage": "vitest run --coverage --config ./vitest.config.ts",
