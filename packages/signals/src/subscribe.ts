@@ -1,6 +1,11 @@
 import { createEffect } from './store/effect';
-import { getReaderOwner } from './store/signal';
+import type { StoreState } from './store/internal';
+import { READER_OWNER } from './store/signal';
 import type { SignalReader, SubscribeFunction } from './store/types';
+
+type OwnedReader<T> = SignalReader<T> & {
+    [READER_OWNER]?: StoreState;
+};
 
 /**
  * Subscribes a listener to changes of a reader created by this library.
@@ -15,10 +20,10 @@ export const subscribe: SubscribeFunction = <T>(
     read: SignalReader<T>,
     listener: () => void,
 ): (() => void) => {
-    const state = getReaderOwner(read);
+    const state = (read as OwnedReader<T>)[READER_OWNER];
 
     if (!state) {
-        throw new Error('Can only subscribe to readers created by @haragei/signals.');
+        throw new Error('Needs @haragei/signals reader.');
     }
 
     let initialized = false;

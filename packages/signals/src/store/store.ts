@@ -55,17 +55,15 @@ export function createStore(): Store {
         execute: EffectFunction | AsyncEffectFunction,
         options?: EffectOptions | AsyncEffectOptions,
     ): (() => void) => {
-        const internalOptions = options
-            ? {
-                  _isMemo: false,
-                  _signal: options.signal,
-                  _queue: 'queue' in options ? options.queue : undefined,
-                  _concurrency: 'concurrency' in options ? options.concurrency : undefined,
-                  _onError: 'onError' in options ? options.onError : undefined,
-              }
-            : undefined;
+        const asyncOptions = options as AsyncEffectOptions | undefined;
 
-        return createEffect(state, execute, internalOptions as InternalEffectOptions | undefined);
+        return createEffect(state, execute, {
+            _isMemo: false,
+            _signal: options?.signal,
+            _queue: asyncOptions?.queue,
+            _concurrency: asyncOptions?.concurrency,
+            _onError: asyncOptions?.onError,
+        } as InternalEffectOptions);
     };
 
     const memo: MemoConstructor = <T>(

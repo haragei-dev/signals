@@ -56,7 +56,7 @@ function getPendingState<T, E = unknown>(
 }
 
 function createAbortError(): Error {
-    const error = new Error('The operation was aborted.');
+    const error = new Error();
     error.name = 'AbortError';
     return error;
 }
@@ -85,23 +85,6 @@ export function createAction<Args extends readonly unknown[], T, E = unknown>(
     execute: (context: ActionContext<T, E>, ...args: Args) => Promise<Immutable<T>>,
     { signal, queue, concurrency = 'cancel', onError }: ActionOptions = {},
 ): readonly [SignalReader<ActionState<T, E>>, ActionControls<Args, T>] {
-    if (signal?.aborted) {
-        const [read] = createSignal<ActionState<T, E>>(state, createIdleState<T, E>());
-        const reject = (): Promise<Immutable<T>> => Promise.reject(createAbortError());
-        const controls: ActionControls<Args, T> = {
-            submit(): Promise<Immutable<T>> {
-                return reject();
-            },
-            submitWith(): Promise<Immutable<T>> {
-                return reject();
-            },
-            abort(): void {},
-            reset(): void {},
-        };
-
-        return [read, controls] as const;
-    }
-
     const [read, write] = createSignal<ActionState<T, E>>(state, createIdleState<T, E>());
     let currentState = read();
     let settledState = currentState;
@@ -171,15 +154,13 @@ export function createAction<Args extends readonly unknown[], T, E = unknown>(
                 };
 
                 try {
-                    return Promise.resolve(
-                        execute(
-                            {
-                                signal: context._signal,
-                                onCleanup: context._onCleanup,
-                                previous: prepared._previous,
-                            } satisfies ActionContext<T, E>,
-                            ...trigger._args,
-                        ),
+                    return execute(
+                        {
+                            signal: context._signal,
+                            onCleanup: context._onCleanup,
+                            previous: prepared._previous,
+                        } satisfies ActionContext<T, E>,
+                        ...trigger._args,
                     );
                 } catch (error) {
                     return Promise.reject(error);

@@ -63,7 +63,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     hooks: AsyncRunnerHooks<Prepared, Result, Trigger>,
 ): AsyncRunnerControl<Trigger> {
     if (queue && concurrency !== 'queue') {
-        throw new Error('The queue option can only be used when concurrency is set to "queue"');
+        throw new Error('queue needs queue concurrency.');
     }
 
     const concurrencyMode =
@@ -101,7 +101,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         try {
             cleanup();
         } catch (error) {
-            console.error('Error during effect cleanup:', error);
+            console.error('Cleanup:', error);
         }
     };
 
@@ -469,7 +469,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             fromDependency
             && state._runs.some((run) => run._effect === effect && run._isTracking)
         ) {
-            throw new Error('Cyclic dependency detected');
+            throw new Error('Cycle detected.');
         }
 
         if (concurrencyMode === CONCURRENCY_CANCEL) {
@@ -542,22 +542,18 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
         },
     };
 
-    if (signal) {
-        signal.addEventListener(
-            'abort',
-            () => {
-                control._stop();
-            },
-            { once: true },
-        );
-    }
-
     state._activeEffects.add(effect);
+
+    if (signal?.aborted) {
+        control._stop();
+    } else if (signal) {
+        signal.addEventListener('abort', control._stop, { once: true });
+    }
 
     return control;
 }
 
-const NO_TRIGGER = Symbol('NO_TRIGGER');
+const NO_TRIGGER = Symbol();
 
 function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
     return (

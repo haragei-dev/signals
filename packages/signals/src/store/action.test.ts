@@ -785,7 +785,7 @@ describe('action()', () => {
 
         expect(() => {
             action(async () => 1, { concurrency: 'cancel', queue });
-        }).toThrow('The queue option can only be used when concurrency is set to "queue"');
+        }).toThrow('queue needs queue concurrency.');
     });
 
     it('Treats synchronously throwing executors as rejected runs.', async () => {
@@ -845,7 +845,7 @@ describe('action()', () => {
 });
 
 function createAbortError(): Error {
-    const error = new Error('The operation was aborted.');
+    const error = new Error();
     error.name = 'AbortError';
     return error;
 }

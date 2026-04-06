@@ -55,17 +55,6 @@ export function createResource<T, E = unknown>(
     load: (context: ResourceContext<T, E>) => Promise<Immutable<T>>,
     { signal, queue, concurrency = 'cancel', onError, writes = 'latest' }: ResourceOptions = {},
 ): readonly [SignalReader<ResourceState<T, E>>, ResourceControls] {
-    if (signal?.aborted) {
-        const [read] = createSignal<ResourceState<T, E>>(state, createIdleState<T, E>());
-        const noopControls: ResourceControls = {
-            refresh(): void {},
-            abort(): void {},
-            reset(): void {},
-        };
-
-        return [read, noopControls] as const;
-    }
-
     const [read, write] = createSignal<ResourceState<T, E>>(state, createIdleState<T, E>());
     let currentState = read();
     let stopped = false;
@@ -106,19 +95,17 @@ export function createResource<T, E = unknown>(
             },
             _execute(context, prepared): Promise<Immutable<T>> {
                 try {
-                    return Promise.resolve(
-                        load({
-                            cancel: fx._cancel,
-                            refresh: controls.refresh,
-                            abort: controls.abort,
-                            reset: controls.reset,
-                            track: context._track as <U>(reader: SignalReader<U>) => Immutable<U>,
-                            signal: context._signal,
-                            onCleanup: context._onCleanup,
-                            previous: prepared._previous,
-                            cause: prepared._cause,
-                        }),
-                    );
+                    return load({
+                        cancel: fx._cancel,
+                        refresh: controls.refresh,
+                        abort: controls.abort,
+                        reset: controls.reset,
+                        track: context._track as <U>(reader: SignalReader<U>) => Immutable<U>,
+                        signal: context._signal,
+                        onCleanup: context._onCleanup,
+                        previous: prepared._previous,
+                        cause: prepared._cause,
+                    });
                 } catch (error) {
                     return Promise.reject(error);
                 }

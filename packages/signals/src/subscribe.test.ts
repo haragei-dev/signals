@@ -88,6 +88,6 @@ describe('subscribe()', () => {
                 () => 1,
                 () => {},
             );
-        }).toThrow('Can only subscribe to readers created by @haragei/signals.');
+        }).toThrow('Needs @haragei/signals reader.');
     });
 });

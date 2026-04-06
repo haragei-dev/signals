@@ -20,10 +20,6 @@ export function createEffect(
         _onError: onError,
     }: InternalEffectOptions = {},
 ): () => void {
-    if (signal?.aborted) {
-        return () => {};
-    }
-
     let canceled = false;
 
     const cancel = (): void => {
@@ -79,7 +75,7 @@ export function createEffect(
                 return run._generation === info._latestStartedGeneration;
             },
             _defaultErrorHandler(error): void {
-                console.error('Error in async effect:', error);
+                console.error('Effect:', error);
             },
             _onErrorCancel(): void {
                 cancel();

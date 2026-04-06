@@ -136,10 +136,7 @@ describe('effect()', () => {
 
         expect(cleanup).toHaveBeenCalledTimes(1);
         expect(consoleErrorMock).toHaveBeenCalledTimes(1);
-        expect(consoleErrorMock).toHaveBeenCalledWith(
-            'Error during effect cleanup:',
-            new Error('Cleanup error'),
-        );
+        expect(consoleErrorMock).toHaveBeenCalledWith('Cleanup:', new Error('Cleanup error'));
     });
 
     it('Detects cycles in the effect dependencies.', () => {
@@ -149,7 +146,7 @@ describe('effect()', () => {
             effect(() => {
                 set(get() + 1);
             });
-        }).toThrow('Cyclic dependency detected');
+        }).toThrow('Cycle detected.');
     });
 
     it('Detects cycles in indirect effect dependencies.', () => {
@@ -164,7 +161,7 @@ describe('effect()', () => {
             effect(() => {
                 setB(a() + 1);
             });
-        }).toThrow('Cyclic dependency detected');
+        }).toThrow('Cycle detected.');
     });
 
     it('Accepts AbortSignal to cancel the effect.', () => {
@@ -869,7 +866,7 @@ describe('effect()', () => {
         await flushPromises();
 
         expect(consoleErrorMock).toHaveBeenCalledTimes(1);
-        expect(consoleErrorMock.mock.calls[0]?.[0]).toBe('Error in async effect:');
+        expect(consoleErrorMock.mock.calls[0]?.[0]).toBe('Effect:');
         expect(consoleErrorMock.mock.calls[0]?.[1]).toBeInstanceOf(Error);
         expect((consoleErrorMock.mock.calls[0]?.[1] as Error | undefined)?.message).toBe('boom');
 
@@ -946,7 +943,7 @@ describe('effect()', () => {
 
         expect(() => {
             effect(async () => {}, { concurrency: 'cancel', queue });
-        }).toThrow('The queue option can only be used when concurrency is set to "queue"');
+        }).toThrow('queue needs queue concurrency.');
     });
 
     it('Rejects async cleanup return values in the public types.', () => {

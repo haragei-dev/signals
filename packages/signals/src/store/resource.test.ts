@@ -142,7 +142,7 @@ describe('resource()', () => {
                 value: undefined,
                 isStale: false,
             });
-            expect((read().error as Error).message).toBe('Cyclic dependency detected');
+            expect((read().error as Error).message).toBe('Cycle detected.');
         });
     });
 
@@ -165,7 +165,7 @@ describe('resource()', () => {
                 value: undefined,
                 isStale: false,
             });
-            expect((read().error as Error).message).toBe('Cyclic dependency detected');
+            expect((read().error as Error).message).toBe('Cycle detected.');
         });
     });
 
@@ -185,7 +185,7 @@ describe('resource()', () => {
                 value: undefined,
                 isStale: false,
             });
-            expect((read().error as Error).message).toBe('Cyclic dependency detected');
+            expect((read().error as Error).message).toBe('Cycle detected.');
         });
     });
 
@@ -270,7 +270,7 @@ describe('resource()', () => {
             expect(read().value).toBe(2);
             expect(cleanup).toHaveBeenCalledTimes(1);
             expect(consoleErrorMock).toHaveBeenCalledTimes(1);
-            expect(consoleErrorMock.mock.calls[0]?.[0]).toBe('Error during effect cleanup:');
+            expect(consoleErrorMock.mock.calls[0]?.[0]).toBe('Cleanup:');
             expect((consoleErrorMock.mock.calls[0]?.[1] as Error).message).toBe('boom');
         } finally {
             consoleErrorMock.mockRestore();
@@ -392,7 +392,7 @@ describe('resource()', () => {
 
         expect(() => {
             resource(async () => 1, { concurrency: 'cancel', queue });
-        }).toThrow('The queue option can only be used when concurrency is set to "queue"');
+        }).toThrow('queue needs queue concurrency.');
     });
 
     it('Preserves previous values on accepted errors.', async () => {
