@@ -5,7 +5,7 @@ catalog:
     '@ampproject/remapping': 2.3.0
     '@arethetypeswrong/core': 0.18.2
     '@changesets/changelog-git': 0.2.1
-    '@changesets/cli': 2.29.7
+    '@changesets/cli': 2.30.0
     '@eslint/js': 10.0.1
     '@types/node': 25.5.0
     '@vitest/coverage-v8': 4.1.2
