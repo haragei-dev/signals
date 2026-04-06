@@ -41,6 +41,37 @@ describe('createStore()', () => {
 
         expect(value).toBe(0);
     });
+
+    it('Allows unlink() to be called repeatedly after the store is inactive.', async () => {
+        const store = createStore();
+
+        await store.unlink();
+        await store.unlink();
+    });
+
+    it('Ignores scoped children whose weak references no longer resolve during unlink().', async () => {
+        const OriginalWeakRef = globalThis.WeakRef;
+
+        class DeadWeakRef<T extends WeakKey> {
+            constructor() {}
+
+            deref(): T | undefined {
+                return undefined;
+            }
+        }
+
+        vi.stubGlobal('WeakRef', DeadWeakRef as unknown as typeof WeakRef);
+
+        try {
+            const store = createStore();
+
+            store.scope();
+
+            await store.unlink();
+        } finally {
+            vi.stubGlobal('WeakRef', OriginalWeakRef);
+        }
+    });
 });
 
 describe('untracked()', () => {

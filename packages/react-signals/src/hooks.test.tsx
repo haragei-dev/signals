@@ -1,6 +1,6 @@
 import { StrictMode, act, useState } from 'react';
 import { renderToString } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DefaultInvalidationQueue, createStore } from '@haragei/signals';
 import type {
     ActionContext,
@@ -672,6 +672,30 @@ describe('React hooks', () => {
         await result.unmount();
     });
 
+    it('useSignalScope can create a client scope without an explicit parent or provider.', async () => {
+        function Child(): React.JSX.Element {
+            const count = useSignal(1);
+
+            return <span>{count.read()}</span>;
+        }
+
+        function App(): React.JSX.Element {
+            const scope = useSignalScope();
+
+            return (
+                <SignalsProvider store={scope}>
+                    <Child />
+                </SignalsProvider>
+            );
+        }
+
+        const result = await render(<App />);
+
+        expect(result.container.textContent).toBe('1');
+
+        await result.unmount();
+    });
+
     it('useSignalScope lets child-scoped hooks react to parent-owned signals.', async () => {
         const root = createStore();
         const [session, setSession] = root.signal('a');
@@ -701,6 +725,78 @@ describe('React hooks', () => {
         expect(result.container.textContent).toBe('b');
 
         await result.unmount();
+    });
+
+    it('useSignalScope unlinks the previous scope when the parent store changes.', async () => {
+        const rootA = createStore();
+        const rootB = createStore();
+        const [countA, setCountA] = rootA.signal(0);
+        const [countB, setCountB] = rootB.signal(0);
+        const seen: string[] = [];
+        let swapParent!: () => void;
+        const queuedCallbacks: Array<() => void> = [];
+        const queueMicrotaskSpy = vi
+            .spyOn(globalThis, 'queueMicrotask')
+            .mockImplementation((callback: VoidFunction) => {
+                queuedCallbacks.push(callback);
+            });
+
+        function Child({ label, read }: { label: string; read: SignalReader<number> }): null {
+            useSignalEffect(() => {
+                seen.push(`${label}:${read()}`);
+            });
+
+            return null;
+        }
+
+        function App(): React.JSX.Element {
+            const [useFirstParent, setUseFirstParent] = useState(true);
+            const parent = useFirstParent ? rootA : rootB;
+            const read = useFirstParent ? countA : countB;
+            const label = useFirstParent ? 'a' : 'b';
+            const scope = useSignalScope(parent);
+
+            swapParent = () => {
+                setUseFirstParent(false);
+            };
+
+            return (
+                <SignalsProvider store={scope}>
+                    <Child label={label} read={read} />
+                </SignalsProvider>
+            );
+        }
+
+        try {
+            const result = await render(<App />);
+
+            expect(seen).toEqual(['a:0']);
+
+            await act(async () => {
+                swapParent();
+            });
+
+            expect(seen).toEqual(['a:0', 'b:0']);
+
+            await act(async () => {
+                setCountA(1);
+                setCountB(1);
+            });
+
+            expect(seen).toEqual(['a:0', 'b:0', 'b:1']);
+
+            await result.unmount();
+
+            await act(async () => {
+                while (queuedCallbacks.length > 0) {
+                    queuedCallbacks.shift()?.();
+                }
+
+                await Promise.resolve();
+            });
+        } finally {
+            queueMicrotaskSpy.mockRestore();
+        }
     });
 
     it('useSignalScope unlinks the owned scope on unmount.', async () => {
