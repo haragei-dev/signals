@@ -3,6 +3,7 @@
 `@haragei/signals` is a lightweight, framework-agnostic TypeScript library for fine-grained reactive state.
 
 It provides:
+
 - signals for mutable state
 - memos for derived state
 - effects for reactive side effects
@@ -29,11 +30,32 @@ const [count, setCount] = signal(0);
 const doubleCount = memo(() => count() * 2);
 
 effect(() => {
-  console.log(`${count()} x 2 = ${doubleCount()}`);
+    console.log(`${count()} x 2 = ${doubleCount()}`);
 });
 
 setCount(1);
 setCount(2);
+```
+
+## Usage with React
+
+```sh
+pnpm add @haragei/signals @haragei/react-signals react
+```
+
+```tsx
+import { useSignal, useSignalValue } from '@haragei/react-signals';
+
+export function Counter() {
+    const count = useSignal(0);
+    const value = useSignalValue(count);
+
+    return (
+        <button type="button" onClick={() => count.update((current) => current + 1)}>
+            Count: {value}
+        </button>
+    );
+}
 ```
 
 ## Async Example
@@ -46,21 +68,21 @@ type Wallet = { id: string; balance: number };
 const walletId = signal('wallet-1');
 
 const [wallet] = resource<Wallet>(async ({ signal }) => {
-  const id = walletId.read();
-  const response = await fetch(`/api/wallets/${id}`, { signal });
-  return response.json();
+    const id = walletId.read();
+    const response = await fetch(`/api/wallets/${id}`, { signal });
+    return response.json();
 });
 
 effect(() => {
-  const state = wallet();
+    const state = wallet();
 
-  if (state.status === 'loading') {
-    console.log('Loading wallet...');
-  }
+    if (state.status === 'loading') {
+        console.log('Loading wallet...');
+    }
 
-  if (state.status === 'ready') {
-    console.log(state.value.balance);
-  }
+    if (state.status === 'ready') {
+        console.log(state.value.balance);
+    }
 });
 ```
 
@@ -107,6 +129,7 @@ For the full API documentation landing page, see [`packages/signals/docs/api/REA
 ## Packages
 
 - [`@haragei/signals`](./packages/signals) - the core framework-agnostic reactive state library
+- [`@haragei/react-signals`](./packages/react-signals) - React 19 bindings for `@haragei/signals`
 
 ## License
 

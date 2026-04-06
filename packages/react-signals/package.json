@@ -11,14 +11,14 @@
     "hooks",
     "reactivity"
   ],
-  "homepage": "https://github.com/haragei/signals",
+  "homepage": "https://github.com/haragei-dev/signals",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haragei/signals.git",
+    "url": "git+https://github.com/haragei-dev/signals.git",
     "directory": "packages/react-signals"
   },
   "bugs": {
-    "url": "https://github.com/haragei/signals/issues"
+    "url": "https://github.com/haragei-dev/signals/issues"
   },
   "type": "module",
   "main": "./dist/index.cjs",

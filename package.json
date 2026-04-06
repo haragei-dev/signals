@@ -18,8 +18,7 @@
     "version:packages": "changeset version",
     "release:pack": "node ./scripts/pack-public-packages.mjs",
     "release:notes": "node ./scripts/generate-release-notes.mjs",
-    "release:publish:npm": "node ./scripts/publish-release-artifacts.mjs --registry=https://registry.npmjs.org --token-env=NPM_TOKEN",
-    "release:publish:github": "node ./scripts/publish-release-artifacts.mjs --registry=https://npm.pkg.github.com --token-env=GH_PACKAGES_TOKEN"
+    "release:publish:npm": "node ./scripts/publish-release-artifacts.mjs --registry=https://registry.npmjs.org --token-env=NPM_TOKEN"
   },
   "devDependencies": {
     "@ampproject/remapping": "catalog:",
