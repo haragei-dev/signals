@@ -29,6 +29,8 @@
     "postpublish",
     "Preact",
     "ruleset",
+    "todoapp",
+    "todomvc",
     "tsdown",
     "vite",
     "vitest"

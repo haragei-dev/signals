@@ -6,6 +6,12 @@
     },
     {
       "path": "./packages/react-signals/tsconfig.json"
+    },
+    {
+      "path": "./packages/signals/examples/todomvc/tsconfig.json"
+    },
+    {
+      "path": "./packages/signals/examples/todomvc-async/tsconfig.json"
     }
   ]
 }

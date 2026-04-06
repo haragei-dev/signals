@@ -1,5 +1,6 @@
 packages:
     - packages/*
+    - packages/*/examples/*
 
 catalog:
     '@ampproject/remapping': 2.3.0

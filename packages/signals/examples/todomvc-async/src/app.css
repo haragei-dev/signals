@@ -1,0 +1,68 @@
+.status-note {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 100;
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #4a4a4a;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-note:is(.is-error, .is-success, .is-info) {
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.status-note.is-error {
+    color: #b83f45;
+    border-left: 3px solid #b83f45;
+}
+
+.status-note.is-success {
+    color: #4d9a51;
+    border-left: 3px solid #4d9a51;
+}
+
+.status-note.is-info {
+    color: #777;
+    border-left: 3px solid #999;
+}
+
+.status-action {
+    background: none;
+    border: 1px solid currentColor;
+    color: inherit;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-left: 6px;
+    opacity: 0.8;
+}
+
+.status-action:hover {
+    opacity: 1;
+}
+
+.refresh-todos {
+    float: right;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.4;
+    line-height: 1;
+}
+
+.refresh-todos:hover {
+    opacity: 0.7;
+}

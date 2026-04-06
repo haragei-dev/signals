@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Signals TodoMVC</title>
+    </head>
+    <body>
+        <section class="todoapp">
+            <header class="header">
+                <h1>todos</h1>
+                <input class="new-todo" placeholder="What needs to be done?" autofocus autocomplete="off" />
+            </header>
+            <section class="main" hidden>
+                <input id="toggle-all" class="toggle-all" type="checkbox" />
+                <label for="toggle-all">Mark all as complete</label>
+                <ul class="todo-list"></ul>
+            </section>
+            <footer class="footer" hidden>
+                <span class="todo-count"></span>
+                <ul class="filters">
+                    <li><a href="#/" class="selected">All</a></li>
+                    <li><a href="#/active">Active</a></li>
+                    <li><a href="#/completed">Completed</a></li>
+                </ul>
+                <button class="clear-completed">Clear completed</button>
+            </footer>
+        </section>
+        <footer class="info">
+            <p>Double-click to edit a todo</p>
+            <p>Example using the <code>@haragei/signals</code> core library</p>
+        </footer>
+        <script type="module" src="/src/main.ts"></script>
+    </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "include": ["src/**/*.ts", "vite.config.ts", "../../src/**/*.ts"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@haragei/signals": ["../../src/index.ts"]
+    },
+    "types": ["vite/client"]
+  }
+}
