@@ -6,6 +6,7 @@
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
     "*.ts": "${capture}.test.ts",
+    "*.tsx": "${capture}.test.tsx",
     "*.d.ts": "${capture}.map",
     "package.json": ".git*, .editorconfig, .eslint*, .node-version, .pnpm*, pnpm-*, .prettier*, .vscode*, eslint*, prettier*, tsconfig.json, *.log, vite*.config.ts, turbo.json, lefthook.yml, tsdown.config.ts"
   },

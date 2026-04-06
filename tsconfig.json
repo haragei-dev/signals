@@ -3,6 +3,9 @@
   "references": [
     {
       "path": "./packages/signals/tsconfig.json"
+    },
+    {
+      "path": "./packages/react-signals/tsconfig.json"
     }
   ]
 }

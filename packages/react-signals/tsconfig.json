@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.build.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../signals/src/**/*.ts"],
+  "compilerOptions": {
+    "rootDir": "..",
+    "baseUrl": "../..",
+    "paths": {
+      "@haragei/signals": ["packages/signals/src/index.ts"]
+    },
+    "ignoreDeprecations": "6.0"
+  }
+}

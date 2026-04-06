@@ -1,0 +1,75 @@
+{
+  "name": "@haragei/react-signals",
+  "version": "1.0.0",
+  "author": "Aleksandar Ružičić",
+  "license": "MIT",
+  "description": "React 19 bindings for @haragei/signals.",
+  "keywords": [
+    "react",
+    "signals",
+    "state",
+    "hooks",
+    "reactivity"
+  ],
+  "homepage": "https://github.com/haragei/signals",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haragei/signals.git",
+    "directory": "packages/react-signals"
+  },
+  "bugs": {
+    "url": "https://github.com/haragei/signals/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    "require": {
+      "types": "./dist/index.d.cts",
+      "default": "./dist/index.cjs"
+    },
+    "import": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "dependencies": {
+    "@haragei/signals": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "directory": "package"
+  },
+  "clean-publish": {
+    "withoutPublish": true,
+    "tempDir": "package",
+    "fields": [
+      "packageManager",
+      "pnpm",
+      "publishConfig",
+      "scripts"
+    ]
+  },
+  "scripts": {
+    "build": "rm -rf ./package && clean-publish && tsdown && node ../../scripts/mangle-internal-props.mjs ./package/dist/*.mjs ./package/dist/*.cjs && node ../../scripts/report-bundle-sizes.mjs ./package/dist/*.mjs ./package/dist/*.cjs",
+    "lint": "eslint ./src --config ../../eslint.config.js",
+    "test": "vitest run --config ./vitest.config.ts",
+    "test:coverage": "vitest run --coverage --config ./vitest.config.ts",
+    "typecheck": "tsc --noEmit -p ./tsconfig.json",
+    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "postpublish": "rm -rf ./package"
+  }
+}
