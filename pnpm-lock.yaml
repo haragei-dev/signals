@@ -170,6 +170,40 @@ importers:
         version: 19.2.4(react@19.2.4)
     publishDirectory: package
 
+  packages/react-signals/examples/todomvc:
+    dependencies:
+      '@haragei/react-signals':
+        specifier: workspace:*
+        version: link:../../package
+      '@haragei/signals':
+        specifier: workspace:*
+        version: link:../../../signals/package
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.4(react@19.2.4)
+      todomvc-app-css:
+        specifier: ^2.4.2
+        version: 2.4.3
+      todomvc-common:
+        specifier: ^1.0.5
+        version: 1.0.5
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.14)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.2
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.2(@types/node@25.5.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
+
   packages/signals:
     publishDirectory: package
 

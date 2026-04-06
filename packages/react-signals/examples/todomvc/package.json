@@ -1,0 +1,27 @@
+{
+  "name": "@haragei/react-signals-example-todomvc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint ./src ./vite.config.ts --config ../../../../eslint.config.js",
+    "typecheck": "tsc --noEmit -p ./tsconfig.json"
+  },
+  "dependencies": {
+    "@haragei/react-signals": "workspace:*",
+    "@haragei/signals": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "todomvc-app-css": "^2.4.2",
+    "todomvc-common": "^1.0.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "catalog:",
+    "vite": "^6.0.0"
+  }
+}

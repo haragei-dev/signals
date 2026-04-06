@@ -1,0 +1,22 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "vite.config.ts",
+    "../../src/**/*.ts",
+    "../../src/**/*.tsx",
+    "../../../signals/src/**/*.ts"
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
+    "ignoreDeprecations": "6.0",
+    "jsx": "react-jsx",
+    "paths": {
+      "@haragei/react-signals": ["../../src/index.ts"],
+      "@haragei/signals": ["../../../signals/src/index.ts"]
+    },
+    "types": ["vite/client"]
+  }
+}
