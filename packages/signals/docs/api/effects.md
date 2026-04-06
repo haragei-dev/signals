@@ -108,8 +108,10 @@ Cleanup callbacks run before the next execution and when the effect is canceled.
 Async effects use the same `effect()` API:
 
 ```ts
+const endpoint = signal('/api/data');
+
 effect(async ({ signal }) => {
-    const response = await fetch('/api/data', { signal });
+    const response = await fetch(endpoint(), { signal });
     console.log(await response.json());
 });
 ```
@@ -137,16 +139,24 @@ effect(async ({ track }) => {
 Async effects do not return cleanup callbacks. Instead, register cleanup through `context.onCleanup()`:
 
 ```ts
+const roomId = signal('general');
+
 effect(async ({ onCleanup, signal }) => {
-    const controller = new AbortController();
+    const socket = new WebSocket(`wss://example.com/rooms/${roomId()}`);
 
     onCleanup(() => {
-        controller.abort();
+        socket.close();
     });
 
-    await fetch('/api/data', {
+    const id = roomId();
+
+    await fetch('/api/presence', {
+        method: 'POST',
+        body: JSON.stringify({ roomId: id }),
         signal: signal,
     });
+
+    socket.send(JSON.stringify({ type: 'join', roomId: id }));
 });
 ```
 
@@ -196,9 +206,10 @@ In practice, this means the effect becomes inert after cancellation.
 
 ```ts
 effect(({ cancel }) => {
-    if (count() > 10) {
+    if (count() >= 10) {
         cancel();
     }
+    console.log(count());
 });
 ```
 
@@ -221,8 +232,10 @@ The returned value is still immutable at the type level. If you need to change a
 An `AbortSignal` for the current effect run.
 
 ```ts
+const walletId = signal('wallet-1');
+
 effect(async ({ signal }) => {
-    await fetch('/api/wallet', { signal });
+    await fetch(`/api/wallet/${walletId()}`, { signal });
 });
 ```
 
@@ -231,9 +244,11 @@ effect(async ({ signal }) => {
 Registers cleanup for the current run. This is especially important for async effects.
 
 ```ts
+const pollMs = signal(1000);
+
 effect(async ({ onCleanup }) => {
-    const timer = setTimeout(() => {}, 1000);
-    onCleanup(() => clearTimeout(timer));
+    const timer = setInterval(() => { console.log('polling...'); }, pollMs());
+    onCleanup(() => clearInterval(timer));
 });
 ```
 
@@ -251,14 +266,24 @@ interface AsyncEffectOptions extends EffectOptions {
 
 Controls what happens when an async effect is invalidated while a previous run is still pending.
 
+Pick the mode based on the kind of side effect you are driving:
+
+- Use `'cancel'` for latest-state synchronization where stale work should be abandoned.
+- Use `'concurrent'` when every run matters and overlap is acceptable.
+- Use `'queue'` when runs must not overlap, but a new invalidation should still trigger another pass later.
+
 ##### `'cancel'` (default)
 
 Abort the stale run and re-run once after it settles.
 
 ```ts
+const userId = signal('u1');
+
 effect(
     async ({ signal }) => {
-        await fetch(`/api/users/${userId()}`, { signal });
+        const id = userId();
+        const response = await fetch(`/api/profile-preview/${id}`, { signal });
+        profilePreviewCache.set(id, await response.json());
     },
     {
         concurrency: 'cancel',
@@ -266,14 +291,20 @@ effect(
 );
 ```
 
+This is the right default for request-like work tied to the latest UI state, such as route-driven fetches, live previews, or search suggestions.
+
+If `userId()` changes from `'u1'` to `'u2'` to `'u3'` while the first request is pending, the `'u1'` run is aborted and the effect coalesces those invalidations into one rerun for the latest state.
+
 ##### `'concurrent'`
 
 Allow overlapping runs.
 
 ```ts
+const route = signal('/home');
+
 effect(
     async () => {
-        await doWork(input());
+        await analytics.sendPageView({ route: route() });
     },
     {
         concurrency: 'concurrent',
@@ -281,22 +312,30 @@ effect(
 );
 ```
 
-Use this when overlapping work is acceptable and stale results are handled by user code.
+Use this when every run represents a meaningful event of its own, such as analytics, audit logging, or best-effort background warming.
+
+For example, if the user navigates through three pages quickly, you may want all three page-view uploads to continue even if they finish out of order.
 
 ##### `'queue'`
 
 Queue invalidations and run them serially.
 
 ```ts
+const draft = signal('');
+
 effect(
     async () => {
-        await syncStep(step());
+        await draftsStore.write('current', draft());
     },
     {
         concurrency: 'queue',
     },
 );
 ```
+
+Use this when the target system must be written to one run at a time, such as IndexedDB persistence, a sync worker, or a hardware bridge that cannot handle overlap.
+
+Queued runs start in invalidation order, but each run reads the current reactive state when it begins. That means multiple queued reruns can still observe the same latest snapshot if the value changed again while earlier work was pending.
 
 When `concurrency` is `'queue'`, you may pass a custom queue.
 
@@ -320,6 +359,8 @@ effect(
 );
 ```
 
+Use a custom queue when default FIFO reruns are not the right fit. For example, a latest-only queue can collapse a backlog of autosave invalidations into a single final rerun.
+
 ### `onError`
 
 ```ts
@@ -334,9 +375,12 @@ interface AsyncEffectErrorOptions {
 Report the error and keep the effect alive. This is the default.
 
 ```ts
+const selectedId = signal('broken');
+
 effect(
     async () => {
-        throw new Error('boom');
+        const id = selectedId();
+        throw new Error(`boom: ${id}`);
     },
     {
         onError: {
@@ -351,9 +395,12 @@ effect(
 Report the error, then cancel the effect.
 
 ```ts
+const selectedId = signal('broken');
+
 effect(
     async () => {
-        throw new Error('boom');
+        const id = selectedId();
+        throw new Error(`boom: ${id}`);
     },
     {
         onError: {
@@ -368,9 +415,12 @@ effect(
 Rethrow the error to the host on a microtask boundary.
 
 ```ts
+const selectedId = signal('broken');
+
 effect(
     async () => {
-        throw new Error('boom');
+        const id = selectedId();
+        throw new Error(`boom: ${id}`);
     },
     {
         onError: {
@@ -385,9 +435,12 @@ effect(
 Inspect the error before the selected mode is applied.
 
 ```ts
+const selectedId = signal('broken');
+
 effect(
     async () => {
-        throw new Error('boom');
+        const id = selectedId();
+        throw new Error(`boom: ${id}`);
     },
     {
         onError: {
@@ -432,7 +485,12 @@ If you need the effect to depend on `count`, read it while the effect itself is 
 ```ts
 effect(() => {
     const current = count(); // tracked
-    console.log('count changed:', current);
+
+    const id = setInterval(() => {
+        console.log(current);
+    }, 1000);
+
+    return () => clearInterval(id);
 });
 ```
 
@@ -445,6 +503,7 @@ effect(({ cancel }) => {
     if (!enabled()) {
         cancel();
     }
+    console.log(count());
 });
 ```
 

@@ -459,5 +459,6 @@ effect(() => {
 
 - [`effects.md`](./effects.md)
 - [`signals.md`](./signals.md)
+- [`actions.md`](./actions.md)
 - [`utilities.md`](./utilities.md)
 - [`store.md`](./store.md)

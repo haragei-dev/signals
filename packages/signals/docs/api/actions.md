@@ -193,12 +193,27 @@ This is the current run signal, not the action instance lifetime signal from `Ac
 Registers cleanup for the current submit.
 
 ```ts
-action(async ({ onCleanup }) => {
-    const timer = setTimeout(() => {}, 1000);
-    onCleanup(() => clearTimeout(timer));
-    return true;
+action(async ({ onCleanup, signal }, file: File) => {
+    const upload = createResumableUpload(file);
+
+    onCleanup(() => {
+        upload.abort();
+    });
+
+    return await upload.start({ signal });
 });
 ```
+
+`onCleanup()` is submit teardown, not a `finally` block.
+
+It runs when the current submit is disposed, for example:
+
+- when the submit is aborted
+- when concurrency handling drops or replaces that submit
+- when a later submit clears the previous committed run
+- when the action instance itself is stopped
+
+If you need logic that always runs as soon as the executor settles successfully or with an error, use `try`/`finally` inside the executor instead.
 
 #### `previous`
 
@@ -299,17 +314,86 @@ If it aborts later:
 
 Controls what happens when `submit()` is called while a previous run is still pending.
 
+Pick the mode based on the write semantics you need:
+
+- Use `'cancel'` for latest-intent writes where only the newest submit should survive.
+- Use `'concurrent'` when every submit matters and overlap is acceptable.
+- Use `'queue'` when submits must run one at a time and in submit order.
+
 ##### `'cancel'` (default)
 
 Abort the stale submit and keep only the latest pending rerun.
+
+```ts
+const [saveDraft, controls] = action(
+    async ({ signal }, body: string) => {
+        const response = await fetch('/api/drafts/current', {
+            method: 'PUT',
+            signal,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ body }),
+        });
+
+        return response.json() as Promise<{ savedAt: string }>;
+    },
+);
+
+void controls.submit('H');
+void controls.submit('He');
+void controls.submit('Hello');
+```
+
+Use this when repeated submits represent replacements of the same intent, such as autosave, live settings updates, or “save latest form state”.
+
+If `'H'`, `'He'`, and `'Hello'` are submitted while the first request is still pending, the intermediate submit is dropped and only the latest replacement rerun is kept.
 
 ##### `'concurrent'`
 
 Allow overlapping submits. Shared visible state still reflects the latest started submit.
 
+```ts
+const [trackExport, controls] = action(
+    async (_context, exportId: string) => {
+        await fetch('/api/export-events', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ exportId, type: 'downloaded' }),
+        });
+
+        return { exportId, tracked: true as const };
+    },
+    { concurrency: 'concurrent' },
+);
+
+void controls.submit('export-1');
+void controls.submit('export-2');
+```
+
+Use this when each submit is a distinct write of its own, such as analytics beacons, audit entries, or background webhooks.
+
+Each submit promise still resolves or rejects independently, but the shared visible `ActionState` follows latest-started-wins semantics.
+
 ##### `'queue'`
 
 Queue submits and execute them in order.
+
+```ts
+const [uploadFile, controls] = action(
+    async (_context, file: File) => {
+        const result = await uploadToS3(file);
+        return { name: file.name, url: result.url };
+    },
+    { concurrency: 'queue' },
+);
+
+void controls.submit(fileA);
+void controls.submit(fileB);
+void controls.submit(fileC);
+```
+
+Use this when overlap would be incorrect or too expensive, such as single-connection uploads, device commands, or writes to a backend that must preserve submit order.
+
+Unlike queued async effects, queued actions keep the original submit arguments. If `fileA`, `fileB`, and `fileC` are submitted in that order, those three submits execute sequentially in that same order.
 
 ### `onError`
 

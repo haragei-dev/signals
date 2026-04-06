@@ -72,22 +72,16 @@ import { action, effect, signal } from '@haragei/signals';
 
 const name = signal('');
 
-const controller = new AbortController();
-const lifetime = new AbortController();
+const [saveProfile, { submit }] = action(async ({ signal }, timestamp = Date.now()) => {
+    const response = await fetch('/api/profile', {
+        method: 'POST',
+        signal,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: name(), timestamp }),
+    });
 
-const [saveProfile, { submitWith }] = action(
-    async ({ signal }, nextName: string) => {
-        const response = await fetch('/api/profile', {
-            method: 'POST',
-            signal,
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ name: nextName }),
-        });
-
-        return response.json() as Promise<{ saved: boolean; name: string }>;
-    },
-    { signal: lifetime.signal },
-);
+    return response.json() as Promise<{ saved: boolean; name: string }>;
+});
 
 effect(() => {
     const state = saveProfile();
@@ -101,10 +95,8 @@ effect(() => {
     }
 });
 
-void submitWith({ signal: controller.signal }, name());
+void submit();
 ```
-
-`submitWith({ signal })` controls one submit attempt. `ActionOptions.signal` controls the lifetime of the action instance itself.
 
 ## Immutable Reads
 

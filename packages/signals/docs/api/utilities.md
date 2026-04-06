@@ -71,7 +71,7 @@ declare function untracked<T>(read: SignalReader<T>): Immutable<T>;
 
 ### `untracked(read)`
 
-Reads a signal, memo, or resource without subscribing the current memo or effect to it.
+Reads a signal, memo, or resource without subscribing the current effect, memo, or resource to it.
 
 ```ts
 effect(() => {
@@ -98,8 +98,11 @@ batch(() => {
 Within the batch:
 
 - signals may update multiple times
-- effects and memos do not flush after every individual write
-- dependents observe the final batched state once the batch ends
+- non-memo effects flush after the outermost batch completes
+- memos may recompute during the batch so reads stay current
+- effects that depend on those signals or memos still observe the final batched state once the outermost batch ends
+
+Nested batches are valid, but they do not create extra flush points. Only the outermost `batch()` call flushes deferred effects.
 
 ### `subscribe(read, listener)`
 
@@ -201,18 +204,21 @@ effect(() => {
 });
 ```
 
-### Nested batch
+### Read derived state inside a batch
 
 ```ts
-batch(() => {
-    setA(1);
+const total = memo(() => price() * quantity());
 
-    batch(() => {
-        setB(2);
-        setC(3);
-    });
+batch(() => {
+    setPrice(20);
+
+    console.log(total()); // sees the latest derived value inside the batch
+
+    setQuantity(3);
 });
 ```
+
+In this example, `total()` can reflect the latest writes during the batch, but any ordinary `effect()` that depends on `total()` still waits until the outermost batch ends before re-running.
 
 ### Custom queue
 

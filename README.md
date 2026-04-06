@@ -4,12 +4,12 @@
 
 It provides:
 
-- signals for mutable state
+- signals for reactive state with immutable reads
 - memos for derived state
 - effects for reactive side effects
+- actions for imperative async writes
 - resources for async derived state
 - stores for isolated reactive graphs
-- scopes for shared-graph teardown boundaries
 
 ## Installation
 
@@ -18,7 +18,7 @@ pnpm add @haragei/signals
 ```
 
 ```ts
-import { batch, effect, memo, resource, signal, untracked } from '@haragei/signals';
+import { action, batch, effect, memo, resource, signal, subscribe, untracked } from '@haragei/signals';
 ```
 
 ## Quick Start
@@ -58,73 +58,11 @@ export function Counter() {
 }
 ```
 
-## Async Example
+## Learn More
 
-```ts
-import { effect, resource, signal } from '@haragei/signals';
-
-type Wallet = { id: string; balance: number };
-
-const walletId = signal('wallet-1');
-
-const [wallet] = resource<Wallet>(async ({ signal }) => {
-    const id = walletId.read();
-    const response = await fetch(`/api/wallets/${id}`, { signal });
-    return response.json();
-});
-
-effect(() => {
-    const state = wallet();
-
-    if (state.status === 'loading') {
-        console.log('Loading wallet...');
-    }
-
-    if (state.status === 'ready') {
-        console.log(state.value.balance);
-    }
-});
-```
-
-## Core Concepts
-
-### Signals
-
-Signals are mutable reactive values. Reading a signal inside an effect or memo creates a dependency. Updating it re-runs the dependents that use it.
-
-API reference: [`packages/signals/docs/api/signals.md`](./packages/signals/docs/api/signals.md)
-
-### Memos
-
-Memos are derived read-only signals. They recompute automatically when their dependencies change and are best used for idempotent derived values.
-
-API reference: [`packages/signals/docs/api/memos.md`](./packages/signals/docs/api/memos.md)
-
-### Effects
-
-Effects react to signal, memo, and resource changes. They support cleanup callbacks, cancellation, async execution, post-`await` manual dependency tracking via `track()`, and configurable async concurrency behavior.
-
-API reference: [`packages/signals/docs/api/effects.md`](./packages/signals/docs/api/effects.md)
-
-### Resources
-
-Resources model async derived state. They expose loading, ready, and error states, keep stale values while refreshing, and provide imperative controls such as `refresh()`, `abort()`, and `reset()`.
-
-API reference: [`packages/signals/docs/api/resources.md`](./packages/signals/docs/api/resources.md)
-
-### Stores
-
-Stores isolate reactive graphs. The global APIs are convenience wrappers around a default global store, while `createStore()` lets you construct independent stores explicitly. A store can also create child scopes with `store.scope()`, which share the same reactive graph but have their own `unlink()` teardown boundary.
-
-API reference: [`packages/signals/docs/api/store.md`](./packages/signals/docs/api/store.md)
-
-### Utilities
-
-The shared runtime utilities cover batching, untracked reads, and queue primitives used by async effects and resources.
-
-API reference: [`packages/signals/docs/api/utilities.md`](./packages/signals/docs/api/utilities.md)
-
-For the full API documentation landing page, see [`packages/signals/docs/api/README.md`](./packages/signals/docs/api/README.md).
+- [`packages/signals/README.md`](./packages/signals/README.md) for the complete core package overview
+- [`packages/signals/docs/api/README.md`](./packages/signals/docs/api/README.md) for the API reference
+- [`packages/react-signals`](./packages/react-signals) for the React bindings
 
 ## Packages
 
