@@ -1,12 +1,14 @@
 import { structuralEqual } from '../equal';
-import type { EffectInstance, StoreState } from './internal';
+import type { EffectInstance, LifecycleOwner, OwnedSignal, StoreState } from './internal';
 import { flushPendingEffects } from './flush';
 import type { Immutable, Signal, SignalOptions, SignalReader, SignalUpdater } from './types';
 
 export const READER_OWNER = Symbol();
+export const READER_LIFETIME_OWNER = Symbol();
 
 type OwnedReader<T> = SignalReader<T> & {
     [READER_OWNER]?: StoreState;
+    [READER_LIFETIME_OWNER]?: LifecycleOwner;
 };
 
 export function getReaderOwner<T>(read: SignalReader<T>): StoreState | undefined {
@@ -15,6 +17,7 @@ export function getReaderOwner<T>(read: SignalReader<T>): StoreState | undefined
 
 export function createSignal<T>(
     state: StoreState,
+    owner: LifecycleOwner,
     initialValue: T | Immutable<T>,
     { equals = structuralEqual }: SignalOptions = {},
 ): Signal<T> {
@@ -22,7 +25,7 @@ export function createSignal<T>(
     let value = initialValue as Immutable<T>;
 
     const read = (): Immutable<T> => {
-        if (state._isTracking) {
+        if (owner._active && state._isTracking) {
             const run = state._runs.at(-1);
             if (run?._isTracking && !dependencies.has(run)) {
                 dependencies.add(run);
@@ -46,6 +49,10 @@ export function createSignal<T>(
 
         value = newValue;
 
+        if (!owner._active) {
+            return;
+        }
+
         const effects = new Set<EffectInstance>();
 
         for (const run of dependencies) {
@@ -60,6 +67,13 @@ export function createSignal<T>(
     };
 
     (read as OwnedReader<T>)[READER_OWNER] = state;
+    (read as OwnedReader<T>)[READER_LIFETIME_OWNER] = owner;
+
+    owner._ownedSignals.add({
+        _clearDependencies(): void {
+            dependencies.clear();
+        },
+    } satisfies OwnedSignal);
 
     const signal = [read, write] as unknown as Signal<T>;
     signal.read = read;

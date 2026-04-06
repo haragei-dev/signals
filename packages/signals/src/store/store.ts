@@ -1,7 +1,7 @@
 import { createAction } from './action';
 import { createEffect } from './effect';
 import { flushPendingEffects } from './flush';
-import type { InternalEffectOptions, StoreState } from './internal';
+import type { InternalEffectOptions, LifecycleOwner, StoreState } from './internal';
 import { createResource } from './resource';
 import { createSignal, readUntracked } from './signal';
 import type {
@@ -42,9 +42,12 @@ export function createStore(): Store {
         _runs: [],
         _activeEffects: new Set(),
     };
+    return createScopedStore(state, createLifecycleOwner(state));
+}
 
+function createScopedStore(state: StoreState, owner: LifecycleOwner): Store {
     const signal = <T>(initialValue: T | Immutable<T>, options?: SignalOptions) => {
-        return createSignal(state, initialValue, options);
+        return createSignal(state, owner, initialValue, options);
     };
 
     const untracked: UntrackedReader = <T>(read: () => Immutable<T>): Immutable<T> => {
@@ -57,7 +60,7 @@ export function createStore(): Store {
     ): (() => void) => {
         const asyncOptions = options as AsyncEffectOptions | undefined;
 
-        return createEffect(state, execute, {
+        return createEffect(state, owner, execute, {
             _isMemo: false,
             _signal: options?.signal,
             _queue: asyncOptions?.queue,
@@ -70,9 +73,9 @@ export function createStore(): Store {
         compute: () => T,
         options?: SignalOptions & EffectOptions,
     ): SignalReader<T> => {
-        const [read, write] = createSignal<T>(state, undefined as T, options);
+        const [read, write] = createSignal<T>(state, owner, undefined as T, options);
 
-        createEffect(state, () => write(compute()), {
+        createEffect(state, owner, () => write(compute()), {
             _isMemo: true,
             _signal: options?.signal,
         } as InternalEffectOptions);
@@ -84,14 +87,14 @@ export function createStore(): Store {
         execute: (context: ActionContext<T, E>, ...args: Args) => Promise<Immutable<T>>,
         options?: ActionOptions,
     ) => {
-        return createAction<Args, T, E>(state, execute, options);
+        return createAction<Args, T, E>(state, owner, execute, options);
     };
 
     const resource: ResourceConstructor = <T, E = unknown>(
         load: (context: ResourceContext<T, E>) => Promise<Immutable<T>>,
         options?: ResourceOptions,
     ) => {
-        return createResource<T, E>(state, load, options);
+        return createResource<T, E>(state, owner, load, options);
     };
 
     const batch = (execute: () => void): void => {
@@ -106,12 +109,13 @@ export function createStore(): Store {
         }
     };
 
+    const scope = (): Store => {
+        return createScopedStore(state, createLifecycleOwner(state, owner));
+    };
+
     const unlink = (): Promise<void> => {
         return Promise.resolve().then(() => {
-            for (const fx of state._activeEffects) {
-                fx._cancel();
-            }
-            state._activeEffects.clear();
+            unlinkLifecycleOwner(owner);
         });
     };
 
@@ -123,6 +127,51 @@ export function createStore(): Store {
         action,
         resource,
         batch,
+        scope,
         unlink,
     };
+}
+
+function createLifecycleOwner(state: StoreState, parent?: LifecycleOwner): LifecycleOwner {
+    const owner: LifecycleOwner = {
+        _state: state,
+        ...(parent ? { _parent: parent } : {}),
+        _children: new Set(),
+        _ownedEffects: new Set(),
+        _ownedSignals: new Set(),
+        _active: parent ? parent._active : true,
+    };
+
+    parent?._children.add(new WeakRef(owner));
+
+    return owner;
+}
+
+function unlinkLifecycleOwner(owner: LifecycleOwner): void {
+    if (!owner._active) {
+        return;
+    }
+
+    owner._active = false;
+
+    for (const reference of owner._children) {
+        const child = reference.deref();
+
+        if (!child) {
+            owner._children.delete(reference);
+            continue;
+        }
+
+        unlinkLifecycleOwner(child);
+    }
+
+    for (const signal of owner._ownedSignals) {
+        signal._clearDependencies();
+    }
+    owner._ownedSignals.clear();
+
+    for (const effect of owner._ownedEffects) {
+        effect._cancel();
+    }
+    owner._ownedEffects.clear();
 }

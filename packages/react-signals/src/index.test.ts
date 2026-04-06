@@ -17,6 +17,7 @@ import {
     useSignalEffect,
     useSignalMemo,
     useSignalResource,
+    useSignalScope,
     useSignalStore,
     useSignalValue,
 } from './index';
@@ -29,6 +30,7 @@ test('exports the React hook surface with the expected types.', () => {
     expectTypeOf(useSignalMemo).returns.toEqualTypeOf<SignalReader<unknown>>();
     expectTypeOf(useSignalEffect).toBeFunction();
     expectTypeOf(useSignalBatch).returns.toEqualTypeOf<BatchFunction>();
+    expectTypeOf(useSignalScope).returns.toEqualTypeOf<Store>();
     expectTypeOf(useSignalResource).returns.toEqualTypeOf<
         readonly [SignalReader<ResourceState<unknown, unknown>>, Readonly<ResourceControls>]
     >();

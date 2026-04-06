@@ -25,6 +25,10 @@ export function SignalsProvider({ store, children }: SignalsProviderProps) {
     );
 }
 
+export function useProvidedSignalStore(): Store | undefined {
+    return useContext(StoreContext);
+}
+
 export function useSignalStore(): Store {
-    return useContext(StoreContext) ?? resolveClientStore();
+    return useProvidedSignalStore() ?? resolveClientStore();
 }

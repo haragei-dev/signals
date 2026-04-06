@@ -6,6 +6,7 @@ export {
     useSignalEffect,
     useSignalMemo,
     useSignalResource,
+    useSignalScope,
     useSignalValue,
 } from './hooks';
 

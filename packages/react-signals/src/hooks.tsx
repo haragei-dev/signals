@@ -18,6 +18,7 @@ import type {
     Signal,
     SignalOptions,
     SignalReader,
+    Store,
 } from '@haragei/signals';
 import {
     createActionFallbackControls,
@@ -26,10 +27,13 @@ import {
     createManagedReader,
     createOnErrorOptions,
     createResourceFallbackControls,
+    createStoreResolver,
     readSnapshot,
     subscribeReader,
 } from './internal';
-import { useSignalStore } from './context';
+import { useProvidedSignalStore, useSignalStore } from './context';
+
+const resolveClientStore = createStoreResolver();
 
 function useLatestRef<T>(value: T): { current: T } {
     const ref = useRef(value);
@@ -193,6 +197,60 @@ export function useSignal<T>(initialValue: T | Immutable<T>, options?: SignalOpt
     useSignalValue(ref.current.signal.read);
 
     return ref.current.signal;
+}
+
+export function useSignalScope(parent?: Store): Store {
+    const providedStore = useProvidedSignalStore();
+    const resolvedParent = parent ?? providedStore ?? resolveClientStore();
+    const ref = useRef<{ parent: Store; scope: Store } | undefined>(undefined);
+    const pendingCleanupRef = useRef<
+        | {
+              scope: Store;
+              cancel(): void;
+          }
+        | undefined
+    >(undefined);
+
+    if (!ref.current || ref.current.parent !== resolvedParent) {
+        ref.current = {
+            parent: resolvedParent,
+            scope: resolvedParent.scope(),
+        };
+    }
+
+    const scope = ref.current.scope;
+
+    useEffect(() => {
+        if (pendingCleanupRef.current?.scope === scope) {
+            pendingCleanupRef.current.cancel();
+            pendingCleanupRef.current = undefined;
+        }
+
+        return () => {
+            let active = true;
+
+            pendingCleanupRef.current = {
+                scope,
+                cancel(): void {
+                    active = false;
+                },
+            };
+
+            queueMicrotask(() => {
+                if (!active) {
+                    return;
+                }
+
+                if (pendingCleanupRef.current?.scope === scope) {
+                    pendingCleanupRef.current = undefined;
+                }
+
+                void scope.unlink();
+            });
+        };
+    }, [scope]);
+
+    return scope;
 }
 
 export function useSignalMemo<T>(

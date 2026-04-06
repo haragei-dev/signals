@@ -7,6 +7,7 @@ import type {
     AsyncRunnerHooks,
     EffectInstance,
     EffectRun,
+    LifecycleOwner,
     StoreState,
 } from './internal';
 import {
@@ -52,6 +53,7 @@ interface AsyncRunnerOptions {
 
 export function createAsyncRunner<Prepared, Result, Trigger = void>(
     state: StoreState,
+    owner: LifecycleOwner,
     effect: EffectInstance,
     {
         _signal: signal,
@@ -532,6 +534,7 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
             clearPendingTriggers();
             state._pendingEffects.delete(effect);
             state._activeEffects.delete(effect);
+            owner._ownedEffects.delete(effect);
             clearCommittedRun();
             clearRetainedDependencies();
             hooks._onStop?.();
@@ -543,8 +546,9 @@ export function createAsyncRunner<Prepared, Result, Trigger = void>(
     };
 
     state._activeEffects.add(effect);
+    owner._ownedEffects.add(effect);
 
-    if (signal?.aborted) {
+    if (signal?.aborted || !owner._active) {
         control._stop();
     } else if (signal) {
         signal.addEventListener('abort', control._stop, { once: true });

@@ -3,7 +3,7 @@ import { deferred, flushPromises } from '../test/store-test-helpers';
 import { createAction } from './action';
 import { createEffect } from './effect';
 import { createSignal } from './signal';
-import { createTestState } from '../test/store-test-helpers';
+import { createTestOwner, createTestState } from '../test/store-test-helpers';
 import {
     type AsyncEffectFunction,
     type AsyncEffectOptions,
@@ -960,8 +960,9 @@ describe('effect()', () => {
 describe('createEffect() internals', () => {
     it('Returns early when an internal update is attempted after cancelation.', () => {
         const state = createTestState();
-        const [read] = createSignal(state, 0);
-        const cancel = createEffect(state, () => {
+        const owner = createTestOwner(state);
+        const [read] = createSignal(state, owner, 0);
+        const cancel = createEffect(state, owner, () => {
             read();
         });
         const [fx] = Array.from(state._activeEffects);
@@ -974,9 +975,10 @@ describe('createEffect() internals', () => {
 
     it('Marks a running sync effect as canceled when the runner stops during execution.', () => {
         const state = createTestState();
-        const [read] = createSignal(state, 0);
+        const owner = createTestOwner(state);
+        const [read] = createSignal(state, owner, 0);
 
-        createEffect(state, ({ cancel }) => {
+        createEffect(state, owner, ({ cancel }) => {
             read();
             cancel();
         });
@@ -987,8 +989,9 @@ describe('createEffect() internals', () => {
 
     it('Keeps internal action effect updates inert.', () => {
         const state = createTestState();
+        const owner = createTestOwner(state);
         const run = vi.fn(async () => 1);
-        const [read] = createAction(state, run);
+        const [read] = createAction(state, owner, run);
         const [fx] = Array.from(state._activeEffects);
 
         fx?._update();

@@ -430,6 +430,14 @@ export interface Store {
     readonly batch: BatchFunction;
 
     /**
+     * Creates a child scope within the same reactive graph.
+     *
+     * The returned scope can react to parent-owned signals and vice versa,
+     * but it has its own teardown boundary through `unlink()`.
+     */
+    scope(): Store;
+
+    /**
      * Unlinks all effects in this Store.
      *
      * Use this when you want to "dispose" of a store.

@@ -34,6 +34,19 @@ export interface EffectInstance {
     readonly _cancel: () => void;
 }
 
+export interface OwnedSignal {
+    _clearDependencies(): void;
+}
+
+export interface LifecycleOwner {
+    readonly _state: StoreState;
+    readonly _parent?: LifecycleOwner;
+    readonly _children: Set<WeakRef<LifecycleOwner>>;
+    readonly _ownedEffects: Set<EffectInstance>;
+    readonly _ownedSignals: Set<OwnedSignal>;
+    _active: boolean;
+}
+
 export interface TrackingRun {
     readonly _effect: EffectInstance;
     _isTracking: boolean;

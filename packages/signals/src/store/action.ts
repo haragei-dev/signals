@@ -1,6 +1,6 @@
 import { createAsyncRunner } from './async-runner';
 import { CANCELED, FULFILLED } from './internal';
-import type { EffectInstance, StoreState } from './internal';
+import type { EffectInstance, LifecycleOwner, StoreState } from './internal';
 import { createSignal } from './signal';
 import type {
     ActionContext,
@@ -82,10 +82,11 @@ function settleTrigger<Args extends readonly unknown[], T>(
 
 export function createAction<Args extends readonly unknown[], T, E = unknown>(
     state: StoreState,
+    owner: LifecycleOwner,
     execute: (context: ActionContext<T, E>, ...args: Args) => Promise<Immutable<T>>,
     { signal, queue, concurrency = 'cancel', onError }: ActionOptions = {},
 ): readonly [SignalReader<ActionState<T, E>>, ActionControls<Args, T>] {
-    const [read, write] = createSignal<ActionState<T, E>>(state, createIdleState<T, E>());
+    const [read, write] = createSignal<ActionState<T, E>>(state, owner, createIdleState<T, E>());
     let currentState = read();
     let settledState = currentState;
     let latestStartedTrigger: ActionTrigger<Args, T> | undefined;
@@ -116,6 +117,7 @@ export function createAction<Args extends readonly unknown[], T, E = unknown>(
         ActionTrigger<Args, T>
     >(
         state,
+        owner,
         fx,
         {
             _signal: signal,

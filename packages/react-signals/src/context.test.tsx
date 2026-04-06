@@ -8,6 +8,7 @@ import {
     useSignalAction,
     useSignalMemo,
     useSignalResource,
+    useSignalScope,
 } from './index';
 
 describe('SignalsProvider SSR', () => {
@@ -43,5 +44,30 @@ describe('SignalsProvider SSR', () => {
                 </SignalsProvider>,
             ).replaceAll('<!-- -->', ''),
         ).toContain('2:4:idle:idle');
+    });
+
+    it('renders provider-backed scoped subtrees safely on the server.', () => {
+        function Scoped(): React.JSX.Element {
+            const scope = useSignalScope();
+
+            return (
+                <SignalsProvider store={scope}>
+                    <Child />
+                </SignalsProvider>
+            );
+        }
+
+        function Child(): React.JSX.Element {
+            const signal = useSignal(3);
+            return <span>{signal.read()}</span>;
+        }
+
+        expect(
+            renderToString(
+                <SignalsProvider>
+                    <Scoped />
+                </SignalsProvider>,
+            ).replaceAll('<!-- -->', ''),
+        ).toContain('3');
     });
 });

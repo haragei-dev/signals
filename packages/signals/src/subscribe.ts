@@ -1,10 +1,11 @@
 import { createEffect } from './store/effect';
-import type { StoreState } from './store/internal';
-import { READER_OWNER } from './store/signal';
+import type { LifecycleOwner, StoreState } from './store/internal';
+import { READER_LIFETIME_OWNER, READER_OWNER } from './store/signal';
 import type { SignalReader, SubscribeFunction } from './store/types';
 
 type OwnedReader<T> = SignalReader<T> & {
     [READER_OWNER]?: StoreState;
+    [READER_LIFETIME_OWNER]?: LifecycleOwner;
 };
 
 /**
@@ -21,14 +22,15 @@ export const subscribe: SubscribeFunction = <T>(
     listener: () => void,
 ): (() => void) => {
     const state = (read as OwnedReader<T>)[READER_OWNER];
+    const owner = (read as OwnedReader<T>)[READER_LIFETIME_OWNER];
 
-    if (!state) {
+    if (!state || !owner) {
         throw new Error('Needs @haragei/signals reader.');
     }
 
     let initialized = false;
 
-    return createEffect(state, () => {
+    return createEffect(state, owner, () => {
         read();
 
         if (initialized) {

@@ -20,6 +20,7 @@ describe('createStore()', () => {
         expect(store.action).toBeInstanceOf(Function);
         expect(store.batch).toBeInstanceOf(Function);
         expect(store.untracked).toBeInstanceOf(Function);
+        expect(store.scope).toBeInstanceOf(Function);
         expect(store.unlink).toBeInstanceOf(Function);
     });
 
@@ -311,6 +312,162 @@ describe('batch()', () => {
         });
 
         expect(fx).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('scope()', () => {
+    it('Lets child effects react to parent-owned signals.', () => {
+        const store = createStore();
+        const child = store.scope();
+        const [count, setCount] = store.signal(0);
+        const runs: number[] = [];
+
+        child.effect(() => {
+            runs.push(count());
+        });
+
+        setCount(1);
+
+        expect(runs).toEqual([0, 1]);
+    });
+
+    it('Lets parent effects react to child-owned signals while the child is active.', () => {
+        const store = createStore();
+        const child = store.scope();
+        const [count, setCount] = child.signal(0);
+        const runs: number[] = [];
+
+        store.effect(() => {
+            runs.push(count());
+        });
+
+        setCount(1);
+
+        expect(runs).toEqual([0, 1]);
+    });
+
+    it('Batches updates across parent and child scopes.', () => {
+        const store = createStore();
+        const child = store.scope();
+        const [left, setLeft] = store.signal(0);
+        const [right, setRight] = child.signal(0);
+        const fx = vi.fn(() => {
+            left();
+            right();
+        });
+
+        child.effect(fx);
+
+        store.batch(() => {
+            setLeft(1);
+            setRight(2);
+        });
+
+        expect(fx).toHaveBeenCalledTimes(2);
+    });
+
+    it('Unlinks only the child subtree when a child scope is disposed.', async () => {
+        const store = createStore();
+        const child = store.scope();
+        const grandchild = child.scope();
+        const sibling = store.scope();
+        const [count, setCount] = store.signal(0);
+        const childRuns: number[] = [];
+        const grandchildRuns: number[] = [];
+        const siblingRuns: number[] = [];
+
+        child.effect(() => {
+            childRuns.push(count());
+        });
+        grandchild.effect(() => {
+            grandchildRuns.push(count());
+        });
+        sibling.effect(() => {
+            siblingRuns.push(count());
+        });
+
+        await child.unlink();
+        setCount(1);
+
+        expect(childRuns).toEqual([0]);
+        expect(grandchildRuns).toEqual([0]);
+        expect(siblingRuns).toEqual([0, 1]);
+    });
+
+    it('Cascades root unlink through descendant scopes.', async () => {
+        const store = createStore();
+        const child = store.scope();
+        const grandchild = child.scope();
+        const [count, setCount] = store.signal(0);
+        const rootRuns: number[] = [];
+        const childRuns: number[] = [];
+        const grandchildRuns: number[] = [];
+
+        store.effect(() => {
+            rootRuns.push(count());
+        });
+        child.effect(() => {
+            childRuns.push(count());
+        });
+        grandchild.effect(() => {
+            grandchildRuns.push(count());
+        });
+
+        await store.unlink();
+        setCount(1);
+
+        expect(rootRuns).toEqual([0]);
+        expect(childRuns).toEqual([0]);
+        expect(grandchildRuns).toEqual([0]);
+    });
+
+    it('Leaves child-owned signals readable and writable, but inert, after child unlink.', async () => {
+        const store = createStore();
+        const child = store.scope();
+        const [count, setCount] = child.signal(0);
+        const [gate, setGate] = store.signal(0);
+        const runs: number[] = [];
+
+        store.effect(() => {
+            gate();
+            runs.push(count());
+        });
+
+        await child.unlink();
+
+        setCount(1);
+        expect(runs).toEqual([0]);
+
+        setGate(1);
+        expect(runs).toEqual([0, 1]);
+
+        setCount(2);
+        expect(runs).toEqual([0, 1]);
+
+        setGate(2);
+        expect(runs).toEqual([0, 1, 2]);
+    });
+
+    it('Aborts child-owned async effects when the child scope is unlinked.', async () => {
+        const store = createStore();
+        const child = store.scope();
+        const pending = deferred<void>();
+        const signals: AbortSignal[] = [];
+
+        child.effect(async ({ signal }) => {
+            signals.push(signal);
+            await pending.promise;
+        });
+
+        expect(signals).toHaveLength(1);
+        expect(signals[0]?.aborted).toBe(false);
+
+        await child.unlink();
+
+        expect(signals[0]?.aborted).toBe(true);
+
+        pending.resolve();
+        await flushPromises();
     });
 });
 

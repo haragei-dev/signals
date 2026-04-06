@@ -1,4 +1,4 @@
-import type { StoreState } from '../store/internal';
+import type { LifecycleOwner, StoreState } from '../store/internal';
 
 export function deferred<T>() {
     let resolve!: (value: T | PromiseLike<T>) => void;
@@ -25,5 +25,15 @@ export function createTestState(): StoreState {
         _pendingEffects: new Set(),
         _runs: [],
         _activeEffects: new Set(),
+    };
+}
+
+export function createTestOwner(state = createTestState()): LifecycleOwner {
+    return {
+        _state: state,
+        _children: new Set(),
+        _ownedEffects: new Set(),
+        _ownedSignals: new Set(),
+        _active: true,
     };
 }

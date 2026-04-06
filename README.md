@@ -8,6 +8,7 @@ It provides:
 - effects for reactive side effects
 - resources for async derived state
 - stores for isolated reactive graphs
+- scopes for shared-graph teardown boundaries
 
 ## Installation
 
@@ -91,7 +92,7 @@ API reference: [`packages/signals/docs/api/resources.md`](./packages/signals/doc
 
 ### Stores
 
-Stores isolate reactive graphs. The global APIs are convenience wrappers around a default global store, while `createStore()` lets you construct independent stores explicitly.
+Stores isolate reactive graphs. The global APIs are convenience wrappers around a default global store, while `createStore()` lets you construct independent stores explicitly. A store can also create child scopes with `store.scope()`, which share the same reactive graph but have their own `unlink()` teardown boundary.
 
 API reference: [`packages/signals/docs/api/store.md`](./packages/signals/docs/api/store.md)
 

@@ -1,5 +1,5 @@
 import { createAsyncRunner } from './async-runner';
-import type { EffectInstance, InternalEffectOptions, StoreState } from './internal';
+import type { EffectInstance, InternalEffectOptions, LifecycleOwner, StoreState } from './internal';
 import type {
     AsyncEffectContext,
     AsyncEffectFunction,
@@ -11,6 +11,7 @@ import type {
 
 export function createEffect(
     state: StoreState,
+    owner: LifecycleOwner,
     execute: EffectFunction | AsyncEffectFunction,
     {
         _isMemo: isMemo = false,
@@ -46,6 +47,7 @@ export function createEffect(
 
     const control = createAsyncRunner<void, void | (() => void)>(
         state,
+        owner,
         fx,
         {
             _signal: signal,

@@ -20,6 +20,7 @@ pnpm add @haragei/signals @haragei/react-signals react
 - `useSignalEffect(execute, options?)`
 - `useSignalResource(load, options?)`
 - `useSignalAction(execute, options?)`
+- `useSignalScope(parent?)`
 - `useSignalBatch()`
 
 All signal/resource/action values keep the core library's immutable-read typing.
@@ -61,6 +62,46 @@ export function Value() {
     return <span>{value}</span>;
 }
 ```
+
+## Scoped subtrees
+
+`useSignalScope()` creates a child scope from the current store and unlinks it on unmount. Use it when a subtree should share the parent graph but own its own teardown lifecycle.
+
+```tsx
+import { SignalsProvider, useSignal, useSignalScope } from '@haragei/react-signals';
+
+function SearchScope({ children }: React.PropsWithChildren) {
+    const scope = useSignalScope();
+    return <SignalsProvider store={scope}>{children}</SignalsProvider>;
+}
+
+function SearchPanel() {
+    const query = useSignal('');
+
+    return (
+        <input
+            value={query.read()}
+            onChange={(event) => query.update(event.target.value)}
+        />
+    );
+}
+```
+
+Pass an explicit parent store when ownership lives outside the current provider tree:
+
+```tsx
+import { createStore } from '@haragei/signals';
+import { SignalsProvider, useSignalScope } from '@haragei/react-signals';
+
+const root = createStore();
+
+function DetachedScope() {
+    const scope = useSignalScope(root);
+    return <SignalsProvider store={scope}>{/* ... */}</SignalsProvider>;
+}
+```
+
+Use `SignalsProvider store={existingStore}` when the provided store is owned somewhere else and should not be unlinked by the current component.
 
 ## Resources
 
@@ -160,6 +201,8 @@ export function Root() {
 ```
 
 Without a provider, creator hooks throw during server rendering because this package intentionally does not use a server-global store.
+
+`useSignalScope()` also needs a provider-backed parent during SSR unless you pass an explicit parent store.
 
 Hook-created async primitives are intentionally client-started:
 

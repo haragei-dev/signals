@@ -3,11 +3,17 @@ import { createAsyncRunner } from './async-runner';
 import { ABORT_CONTROL, CANCELED, FULFILLED } from './internal';
 import type { EffectInstance } from './internal';
 import { createSignal } from './signal';
-import { createTestState, deferred, flushPromises } from '../test/store-test-helpers';
+import {
+    createTestOwner,
+    createTestState,
+    deferred,
+    flushPromises,
+} from '../test/store-test-helpers';
 
 describe('createAsyncRunner()', () => {
     it('Ignores cancelActive() after the runner has already been stopped.', () => {
         const state = createTestState();
+        const owner = createTestOwner(state);
         const effect: EffectInstance = {
             _isMemo: false,
             _update() {},
@@ -16,6 +22,7 @@ describe('createAsyncRunner()', () => {
 
         const control = createAsyncRunner(
             state,
+            owner,
             effect,
             {},
             {
@@ -34,6 +41,7 @@ describe('createAsyncRunner()', () => {
 
     it('Keeps sync subscriptions when prepared state is undefined.', () => {
         const state = createTestState();
+        const owner = createTestOwner(state);
         const effect: EffectInstance = {
             _isMemo: false,
             _update() {
@@ -43,11 +51,12 @@ describe('createAsyncRunner()', () => {
                 control._stop();
             },
         };
-        const [read, write] = createSignal(state, 0);
+        const [read, write] = createSignal(state, owner, 0);
         const runs: number[] = [];
 
         const control = createAsyncRunner(
             state,
+            owner,
             effect,
             {},
             {
@@ -75,6 +84,7 @@ describe('createAsyncRunner()', () => {
 
     it('Stops the runner on rejected async work when cancel error handling has no custom cancel hook.', async () => {
         const state = createTestState();
+        const owner = createTestOwner(state);
         const effect: EffectInstance = {
             _isMemo: false,
             _update() {
@@ -87,6 +97,7 @@ describe('createAsyncRunner()', () => {
 
         const control = createAsyncRunner(
             state,
+            owner,
             effect,
             { _onError: { mode: 'cancel' } },
             {
@@ -109,6 +120,7 @@ describe('createAsyncRunner()', () => {
 
     it('Falls back to committing async results when no shouldCommit hook is provided.', async () => {
         const state = createTestState();
+        const owner = createTestOwner(state);
         const effect: EffectInstance = {
             _isMemo: false,
             _update() {
@@ -122,6 +134,7 @@ describe('createAsyncRunner()', () => {
 
         const control = createAsyncRunner(
             state,
+            owner,
             effect,
             {},
             {
@@ -147,6 +160,7 @@ describe('createAsyncRunner()', () => {
 
     it('Unwinds tracking state when execute throws synchronously during runner startup.', () => {
         const state = createTestState();
+        const owner = createTestOwner(state);
         const effect: EffectInstance = {
             _isMemo: false,
             _update() {
@@ -159,6 +173,7 @@ describe('createAsyncRunner()', () => {
 
         const control = createAsyncRunner(
             state,
+            owner,
             effect,
             {},
             {
@@ -182,6 +197,7 @@ describe('createAsyncRunner()', () => {
 
     it('Unwinds untracked runner state when execute throws synchronously during startup.', () => {
         const state = createTestState();
+        const owner = createTestOwner(state);
         const effect: EffectInstance = {
             _isMemo: false,
             _update() {
@@ -194,6 +210,7 @@ describe('createAsyncRunner()', () => {
 
         const control = createAsyncRunner(
             state,
+            owner,
             effect,
             { _trackDependencies: false },
             {
@@ -217,7 +234,8 @@ describe('createAsyncRunner()', () => {
 
     it('Preserves dependencies idempotently when active work is canceled repeatedly.', async () => {
         const state = createTestState();
-        const [read] = createSignal(state, 0);
+        const owner = createTestOwner(state);
+        const [read] = createSignal(state, owner, 0);
         const pending = deferred<void>();
         const effect: EffectInstance = {
             _isMemo: false,
@@ -231,6 +249,7 @@ describe('createAsyncRunner()', () => {
 
         const control = createAsyncRunner(
             state,
+            owner,
             effect,
             {},
             {

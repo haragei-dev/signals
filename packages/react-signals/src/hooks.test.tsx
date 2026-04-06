@@ -1,4 +1,4 @@
-import { act } from 'react';
+import { StrictMode, act, useState } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { DefaultInvalidationQueue, createStore } from '@haragei/signals';
@@ -19,6 +19,7 @@ import {
     useSignalEffect,
     useSignalMemo,
     useSignalResource,
+    useSignalScope,
     useSignalStore,
     useSignalValue,
 } from './index';
@@ -635,6 +636,152 @@ describe('React hooks', () => {
         expect(result.container.textContent).toBe('10');
 
         await result.unmount();
+    });
+
+    it('useSignalScope returns a scoped store stable across rerenders.', async () => {
+        const root = createStore();
+        let firstScope: ReturnType<typeof useSignalScope> | undefined;
+        let latestScope: ReturnType<typeof useSignalScope> | undefined;
+        let rerender!: () => void;
+
+        function App(): React.JSX.Element {
+            const scope = useSignalScope(root);
+            const [tick, setTick] = useState(0);
+
+            rerender = () => {
+                setTick((value) => value + 1);
+            };
+            firstScope ??= scope;
+            latestScope = scope;
+
+            return (
+                <SignalsProvider store={scope}>
+                    <span>{tick}</span>
+                </SignalsProvider>
+            );
+        }
+
+        const result = await render(<App />);
+
+        await act(async () => {
+            rerender();
+        });
+
+        expect(latestScope).toBe(firstScope);
+
+        await result.unmount();
+    });
+
+    it('useSignalScope lets child-scoped hooks react to parent-owned signals.', async () => {
+        const root = createStore();
+        const [session, setSession] = root.signal('a');
+
+        function Child(): React.JSX.Element {
+            const sessionRead = useSignalMemo(() => session());
+            return <span>{useSignalValue(sessionRead)}</span>;
+        }
+
+        function App(): React.JSX.Element {
+            const scope = useSignalScope(root);
+
+            return (
+                <SignalsProvider store={scope}>
+                    <Child />
+                </SignalsProvider>
+            );
+        }
+
+        const result = await render(<App />);
+        expect(result.container.textContent).toBe('a');
+
+        await act(async () => {
+            setSession('b');
+        });
+
+        expect(result.container.textContent).toBe('b');
+
+        await result.unmount();
+    });
+
+    it('useSignalScope unlinks the owned scope on unmount.', async () => {
+        const root = createStore();
+        const [count, setCount] = root.signal(0);
+        const seen: number[] = [];
+
+        function Child(): null {
+            useSignalEffect(() => {
+                seen.push(count());
+            });
+
+            return null;
+        }
+
+        function App(): React.JSX.Element {
+            const scope = useSignalScope(root);
+
+            return (
+                <SignalsProvider store={scope}>
+                    <Child />
+                </SignalsProvider>
+            );
+        }
+
+        const result = await render(<App />);
+        expect(seen).toEqual([0]);
+
+        await result.unmount();
+        await flushMicrotasks();
+
+        await act(async () => {
+            setCount(1);
+        });
+
+        expect(seen).toEqual([0]);
+    });
+
+    it('useSignalScope does not leak active scoped effects in StrictMode.', async () => {
+        const root = createStore();
+        const [count, setCount] = root.signal(0);
+        const seen: number[] = [];
+
+        function Child(): null {
+            useSignalEffect(() => {
+                seen.push(count());
+            });
+
+            return null;
+        }
+
+        function App(): React.JSX.Element {
+            const scope = useSignalScope(root);
+
+            return (
+                <SignalsProvider store={scope}>
+                    <Child />
+                </SignalsProvider>
+            );
+        }
+
+        const result = await render(
+            <StrictMode>
+                <App />
+            </StrictMode>,
+        );
+
+        await act(async () => {
+            setCount(1);
+        });
+
+        expect(seen.filter((value) => value === 1)).toHaveLength(1);
+
+        await result.unmount();
+        await flushMicrotasks();
+
+        await act(async () => {
+            setCount(2);
+        });
+
+        expect(seen).not.toContain(2);
     });
 
     it('useSignalAction forwards async options to the underlying action.', async () => {

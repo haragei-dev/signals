@@ -1,6 +1,6 @@
 import { createAsyncRunner } from './async-runner';
 import { ABORT_CONTROL, CANCELED, FULFILLED, REJECTED } from './internal';
-import type { EffectInstance, StoreState } from './internal';
+import type { EffectInstance, LifecycleOwner, StoreState } from './internal';
 import { createSignal } from './signal';
 import type {
     Immutable,
@@ -52,10 +52,11 @@ function getLoadingState<T, E = unknown>(
 
 export function createResource<T, E = unknown>(
     state: StoreState,
+    owner: LifecycleOwner,
     load: (context: ResourceContext<T, E>) => Promise<Immutable<T>>,
     { signal, queue, concurrency = 'cancel', onError, writes = 'latest' }: ResourceOptions = {},
 ): readonly [SignalReader<ResourceState<T, E>>, ResourceControls] {
-    const [read, write] = createSignal<ResourceState<T, E>>(state, createIdleState<T, E>());
+    const [read, write] = createSignal<ResourceState<T, E>>(state, owner, createIdleState<T, E>());
     let currentState = read();
     let stopped = false;
 
@@ -76,6 +77,7 @@ export function createResource<T, E = unknown>(
 
     const control = createAsyncRunner<ResourcePrepared<T, E>, Immutable<T>, RunCause>(
         state,
+        owner,
         fx,
         {
             _signal: signal,
