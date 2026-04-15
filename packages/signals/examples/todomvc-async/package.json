@@ -16,7 +16,7 @@
   "dependencies": {
     "@fastify/static": "^9.0.0",
     "@haragei/signals": "workspace:*",
-    "fastify": "^5.0.0",
+    "fastify": "^5.8.5",
     "todomvc-app-css": "^2.4.2",
     "todomvc-common": "^1.0.5"
   },
