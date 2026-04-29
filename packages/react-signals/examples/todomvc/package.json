@@ -13,7 +13,7 @@
   "dependencies": {
     "@haragei/react-signals": "workspace:*",
     "@haragei/signals": "workspace:*",
-    "react": "^19.0.0",
+    "react": "^19.2.5",
     "react-dom": "^19.0.0",
     "todomvc-app-css": "^2.4.2",
     "todomvc-common": "^1.0.5"
